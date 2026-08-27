@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+webapp/server-rust/target/
+
+# Coverage
+coverage/
+*.lcov
+
+# Runtime uploads (user content, never source)
+webapp/server-node/uploads/*
+!webapp/server-node/uploads/.gitkeep
+webapp/server-rust/uploads/*
+!webapp/server-rust/uploads/.gitkeep
+
+# Environment / secrets — AUTH_SECRET must never be committed
+.env
+.env.*
+!.env.example
+*.local
+secrets/
+
+# Certificates, private keys and mobile signing material
+*.pem
+*.key
+*.crt
+*.cer
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+
+# Local databases and backups
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.backup
+*.dump
+
+# Local scratch / command captures (never source)
+.local-run/
+tmp/
+temp/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+*.swp
+
+# Mobile build artifacts and generated native projects
+.expo/
+web-build/
+*.apk
+*.aab
+*.ipa
+*.tsbuildinfo
+
+# NESTED REPOSITORY — mobile-app/ owns its own .git history (baseline commit
+# 279ec1b). Staging it here would create a gitlink with no submodule remote and
+# would NOT version the mobile sources. It is excluded until an authorized
+# decision is made to consolidate or register it as a real submodule.
+# Mobile rollback is performed inside mobile-app/ via its own history.
+mobile-app/
+
+# macOS AppleDouble resource forks.
+# These broke test collection outright: vitest matched `._*.test.ts` as test
+# files and esbuild aborted on their binary content. They are ignored here and
+# excluded in every vitest config.
+._*
+.Spotlight-V100
+.Trashes

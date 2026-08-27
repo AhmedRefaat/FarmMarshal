@@ -1,0 +1,16 @@
+=== TOOLCHAIN ===
+node: v24.12.0
+npm: 11.6.2
+cargo: cargo 1.93.0 (083ac5135 2025-12-15)
+rustc: rustc 1.93.0 (254b59607 2026-01-19)
+os: Microsoft Windows 10.0.22631 / X64
+=== LOCK FILES ===
+mobile-app\package-lock.json                                               393374 bytes
+webapp\client\package-lock.json                                            180252 bytes
+webapp\server-node\package-lock.json                                       132962 bytes
+webapp\server-rust\Cargo.lock                                               26387 bytes
+package-lock.json                                                              93 bytes
+=== GIT ===
+fatal: not a git repository (or any of the parent directories): .git
+nested git dirs:
+  C:\BMW_Work\Workspace\Scripts\WebApp_Demp\mobile-app\.git

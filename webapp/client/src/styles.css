@@ -1,0 +1,104 @@
+/* AgriTasks web client — single global stylesheet (green brand palette). */
+
+* { box-sizing: border-box; margin: 0; }
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #f6fbf4;
+  color: #22301f;
+}
+
+/* ---------- Login ---------- */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; }
+.login-card {
+  background: #fff; padding: 2rem; border-radius: 14px;
+  border: 1px solid #dde8da; width: 320px;
+  display: flex; flex-direction: column; gap: .7rem; text-align: center;
+}
+.login-card h1 { color: #2e7d32; }
+.login-card input {
+  padding: .6rem .8rem; border: 1px solid #dde8da; border-radius: 8px;
+}
+.login-card button {
+  background: #2e7d32; color: #fff; border: 0; border-radius: 8px;
+  padding: .7rem; font-weight: 700; cursor: pointer;
+}
+.error { color: #c62828; margin: .4rem 0; }
+
+/* ---------- App shell ---------- */
+.shell { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 210px; background: #1b5e20; color: #fff;
+  display: flex; flex-direction: column; gap: .4rem; padding: 1.2rem .9rem;
+  position: sticky; top: 0; height: 100vh;
+}
+.sidebar h2 { font-size: 1.15rem; }
+.role-tag { opacity: .75; font-size: .8rem; text-transform: uppercase; }
+.sidebar a {
+  color: #fff; text-decoration: none; padding: .5rem .6rem;
+  border-radius: 8px; font-size: .95rem;
+}
+.sidebar a.active, .sidebar a:hover { background: #2e7d32; }
+.logout {
+  margin-top: auto; background: transparent; color: #ffcdd2;
+  border: 0; cursor: pointer; text-align: left; padding: .5rem .6rem;
+}
+.content { flex: 1; padding: 1.6rem 2rem; max-width: 1000px; }
+
+/* ---------- Dashboard KPIs ---------- */
+.kpis { display: flex; gap: 1rem; margin: 1rem 0; }
+.kpi {
+  flex: 1; padding: 1.1rem; border-radius: 12px; color: #fff;
+  font-size: 1.05rem; background: #607d8b;
+}
+.kpi b { display: block; font-size: 1.9rem; }
+.kpi.red { background: #c62828; }
+.kpi.orange { background: #ef6c00; }
+.kpi.green { background: #2e7d32; }
+
+/* ---------- Lists / tables / badges ---------- */
+.feed { list-style: none; padding: 0; }
+.feed li { padding: .45rem 0; border-bottom: 1px solid #e7efe4; }
+.feed a { color: #1b5e20; text-decoration: none; }
+.table { width: 100%; border-collapse: collapse; background: #fff; margin-top: .8rem; }
+.table th, .table td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid #e7efe4; }
+.table a { color: #1b5e20; font-weight: 600; }
+.badge { padding: .15rem .55rem; border-radius: 999px; font-size: .78rem; color: #fff; }
+.b-assigned { background: #1565c0; } .b-in_progress { background: #ef6c00; }
+.b-submitted { background: #6a1b9a; } .b-approved { background: #2e7d32; }
+.b-rejected { background: #c62828; }
+
+/* ---------- Task detail ---------- */
+.desc { margin: .6rem 0; line-height: 1.5; }
+.muted { color: #7a8873; font-size: .88rem; }
+.photos { display: flex; gap: 1rem; margin: 1rem 0; }
+.photos img { width: 260px; height: 190px; object-fit: cover; border-radius: 10px; }
+figcaption { font-size: .75rem; font-weight: 800; letter-spacing: 1px; color: #888; }
+.thread { list-style: none; padding: 0; margin: .8rem 0; }
+.thread li { background: #fff; border: 1px solid #dde8da; border-radius: 10px; padding: .6rem .8rem; margin-bottom: .5rem; }
+.thread audio { width: 100%; margin-top: .35rem; }
+.row { display: flex; gap: .5rem; margin: .6rem 0; align-items: center; }
+.row input { flex: 1; padding: .55rem .7rem; border: 1px solid #dde8da; border-radius: 8px; }
+button {
+  padding: .5rem .85rem; border-radius: 8px; border: 1px solid #dde8da;
+  background: #fff; cursor: pointer; font-weight: 600;
+}
+button.green { background: #2e7d32; color: #fff; border: 0; }
+button.red { background: #c62828; color: #fff; border: 0; }
+
+/* ---------- Evaluations modal ---------- */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  display: grid; place-items: center;
+}
+.modal-card {
+  background: #fff; border-radius: 14px; padding: 1.4rem; width: 340px;
+  display: flex; flex-direction: column; gap: .7rem;
+}
+.stars { display: flex; gap: .2rem; justify-content: center; }
+.star { font-size: 1.6rem; border: 0; background: none; color: #ccc; cursor: pointer; }
+.star.on { color: #f9a825; }
+
+/* ---------- Filter chips ---------- */
+.chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+.chip.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }

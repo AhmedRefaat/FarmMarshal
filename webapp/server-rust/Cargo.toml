@@ -1,0 +1,26 @@
+[package]
+name = "agritasks-server-rust"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+# Async web framework (routing, extractors, multipart)
+axum = { version = "0.7", features = ["multipart", "ws"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Token signing
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+# Password hashing (SEC-C3). scrypt mirrors the Node backend's KDF choice so
+# both trails store credentials in the same self-describing PHC format.
+scrypt = "0.11"
+password-hash = { version = "0.5", features = ["rand_core"] }
+rand_core = { version = "0.6", features = ["std"] }
+# Unique filenames for audio uploads
+uuid = { version = "1", features = ["v4"] }
+# CORS layer
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+# Async stream utilities for the WebSocket gateway (P1 push channel)
+futures-util = "0.3"

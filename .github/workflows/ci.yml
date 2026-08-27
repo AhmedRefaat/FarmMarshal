@@ -1,0 +1,150 @@
+# CI — build, typecheck, test, and coverage gates.
+#
+# STATUS: authored during Wave 0 remediation but NEVER EXECUTED. There is no
+# repository-root git remote in this environment, so this file is unverified.
+# Treat the first run as a debugging exercise, not as a passing gate.
+#
+# Every job below mirrors a command that WAS run locally and exited 0 —
+# see specs/evidence/commands.log.md.
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  server-node:
+    name: Node backend
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      NO_LISTEN: '1'
+    defaults:
+      run:
+        working-directory: webapp/server-node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: webapp/server-node/package-lock.json
+
+      # `npm ci` is deliberate: it fails when the lock file drifts from
+      # package.json. A stale lock is what broke the client install (see
+      # specs/REMEDIATION_BASELINE.md finding N-3).
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-node-coverage
+          path: webapp/server-node/coverage/
+          if-no-files-found: warn
+
+  client:
+    name: Web client
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: webapp/client/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Test
+        run: npx vitest run
+      - name: Build
+        run: npx vite build
+
+  mobile:
+    name: Mobile app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile-app/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Test
+        run: npx vitest run
+
+  server-rust:
+    name: Rust backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp/server-rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: webapp/server-rust
+      - name: Format check
+        run: cargo fmt --check
+        continue-on-error: true # pre-existing formatting drift; not a Wave 0 gate
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+        continue-on-error: true # pre-existing warnings; tracked as WP-2.6
+      # --release because scrypt is prohibitively slow in a debug build
+      # (a local debug `cargo test` took ~86 s).
+      - name: Test
+        run: cargo test --release
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # Reporting only for now: 7 known vulnerabilities remain in server-node
+      # (2 critical). Flipping this to a hard gate is WP-1.10.
+      - name: npm audit (server-node)
+        working-directory: webapp/server-node
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Fail if a committed secret literal reappears
+        run: |
+          if grep -rn --include='*.ts' --include='*.rs' \
+               "agritasks-dev-secret" \
+               webapp/server-node/src webapp/server-rust/src \
+             | grep -v 'security/config.ts'; then
+            echo "::error::Hardcoded development secret found outside security/config.ts"
+            exit 1
+          fi
