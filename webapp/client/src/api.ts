@@ -5,7 +5,15 @@
  *   • prefixes the API base URL (/api → Vite proxy → server)
  *   • attaches the Bearer token from localStorage
  *   • throws descriptive Error objects on non-2xx responses
+ *
+ * OFFLINE DEMO: when the bundle is built with VITE_DEMO_MODE=1 (the GitHub
+ * Pages build), `request` never touches the network — it is answered by
+ * src/demo/demoApi.ts. Every endpoint wrapper below is unchanged either way,
+ * which is the point: one code path, two data sources.
+ * See docs/STATIC_DEMO_DEPLOYMENT.md.
  */
+
+import { DEMO_MODE, demoAudioComment, demoEndSession, demoRequest } from './demo/demoApi';
 
 /** API base path — Vite proxies this to the Node trail in dev. */
 const BASE = '/api';
@@ -55,6 +63,14 @@ function acceptLanguage(): string {
  * @param opts   standard fetch options
  */
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
+  if (DEMO_MODE) {
+    const { status, body } = await demoRequest(path, opts);
+    if (status >= 400) {
+      if (status === 401 && path !== '/auth/login') endSession();
+      throw new ApiError(body?.error ?? `Request failed (${status})`, status);
+    }
+    return body as T;
+  }
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
     headers: {
@@ -87,8 +103,11 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 function endSession(): void {
   localStorage.removeItem('farmmarshal_token');
   localStorage.removeItem('farmmarshal_user');
-  if (window.location.pathname !== '/login') {
-    window.location.replace('/login');
+  if (DEMO_MODE) demoEndSession();
+  // BASE_URL carries the deploy sub-path ('/' in dev, '/FarmMarshal/' on Pages).
+  const login = `${import.meta.env.BASE_URL}login`.replace('//', '/');
+  if (window.location.pathname !== login) {
+    window.location.replace(login);
   }
 }
 
@@ -146,6 +165,7 @@ export const api = {
    * set content-type ourselves (the browser adds the boundary).
    */
   addAudioComment: async (taskId: string, blob: Blob) => {
+    if (DEMO_MODE) return demoAudioComment(taskId, blob);
     const form = new FormData();
     form.append('file', new File([blob], 'voice.webm', { type: blob.type }));
     const res = await fetch(`/api/tasks/${taskId}/comments/audio`, {

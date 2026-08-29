@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
+import { asset } from '../assets';
 import { useErrorMessage, useI18n } from '../i18n';
 import type { MessageKey } from '../i18n';
 import type { Farm, Issue, IssueEvent, Task } from '../types';
@@ -81,7 +82,7 @@ export default function FarmDetail() {
       </div>
 
       <figure className="photo hero-strip">
-        <img src="/images/01-farm-overview.jpg" alt="" />
+        <img src={asset('images/01-farm-overview.jpg')} alt="" />
         <figcaption>{t('farmDetail.heroCaption')}</figcaption>
       </figure>
 

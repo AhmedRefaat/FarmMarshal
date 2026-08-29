@@ -7,6 +7,12 @@
 > This document is retained for the legacy REST contract history; all NEW work must
 > follow REQUIREMENTS.md as the single source of truth.
 
+> 📦 **Offline demo build:** the client can be built with `VITE_DEMO_MODE=1`, which
+> replaces every call described below with a recorded fixture so the app runs with
+> **no backend at all** (used for the GitHub Pages stakeholder demo). If you change
+> a response shape in this contract, the fixture must be re-recorded — see
+> **`docs/STATIC_DEMO_DEPLOYMENT.md`**.
+
 **FarmMarshal WebApp** is the land-owner's control tower: a web dashboard where the
 **Land Owner** monitors every problem, solution, and activity happening on his land,
 and **evaluates** (rates) both his moderators and workers. The same REST API also

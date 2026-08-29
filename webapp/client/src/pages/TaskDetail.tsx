@@ -14,6 +14,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
+import { asset } from '../assets';
 import { useAuth } from '../auth';
 import { useErrorMessage, useI18n } from '../i18n';
 import type { MessageKey } from '../i18n';
@@ -151,11 +152,11 @@ export default function TaskDetail() {
           <>
             <figure className="photo">
               <figcaption>{`${t('task.before')} · ${t('task.sampleEvidence')}`}</figcaption>
-              <img src="/images/07-irrigation-fault-before.jpg" alt={t('task.before')} />
+              <img src={asset('images/07-irrigation-fault-before.jpg')} alt={t('task.before')} />
             </figure>
             <figure className="photo">
               <figcaption>{`${t('task.after')} · ${t('task.sampleEvidence')}`}</figcaption>
-              <img src="/images/10-irrigation-after-repair.jpg" alt={t('task.after')} />
+              <img src={asset('images/10-irrigation-after-repair.jpg')} alt={t('task.after')} />
             </figure>
           </>
         )}

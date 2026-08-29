@@ -99,9 +99,11 @@ html[lang='en'] .eyebrow { text-transform: uppercase; letter-spacing: .16em; }
 /* ---------- Login ---------- */
 .login-wrap {
   min-height: 100vh; display: grid; place-items: center; padding: 1.5rem;
+  /* The photo comes from --login-photo, set in main.tsx: a literal url() here
+     would break under a deploy sub-path (GitHub Pages), which CSS cannot see. */
   background:
     linear-gradient(rgba(2, 44, 34, .74), rgba(2, 44, 34, .82)),
-    url('/images/01-farm-overview.jpg') center / cover no-repeat;
+    var(--login-photo) center / cover no-repeat;
 }
 .login-card {
   background: var(--surface); padding: 2.1rem; border-radius: 22px;

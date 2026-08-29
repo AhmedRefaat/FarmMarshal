@@ -1,0 +1,68 @@
+# Publish the offline demo to GitHub Pages.
+#
+# Pages is a STATIC host: it cannot run the Fastify or Axum trail. The bundle
+# is therefore built with VITE_DEMO_MODE=1, which swaps every API call for the
+# recorded fixture in webapp/client/src/demo/. See
+# docs/STATIC_DEMO_DEPLOYMENT.md before changing anything here.
+#
+# One-time setup in the repository: Settings → Pages → Source = GitHub Actions.
+
+name: Demo (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'webapp/client/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; the newest wins.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build static demo
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: webapp/client/package-lock.json
+      - run: npm ci
+      - name: Build
+        env:
+          VITE_DEMO_MODE: '1'
+          # A project site lives at https://<user>.github.io/<repo>/.
+          VITE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build
+      # Pages has no SPA rewrite: a deep link such as /tasks/t-1/report is a
+      # real 404. Serving the app as the 404 body keeps the URL and lets the
+      # router take over.
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: webapp/client/dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

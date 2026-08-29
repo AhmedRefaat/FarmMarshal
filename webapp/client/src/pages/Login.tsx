@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { asset } from '../assets';
 import { signInWithGoogle } from '../googleAuth';
 import { LocaleSwitch, useI18n } from '../i18n';
 
@@ -37,7 +38,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <img className="login-mark" src="/logo.png" alt={t('app.name')} />
+        <img className="login-mark" src={asset('logo.png')} alt={t('app.name')} />
         <h1>{t('app.name')}</h1>
         <p>{t('app.tagline')}</p>
         <input

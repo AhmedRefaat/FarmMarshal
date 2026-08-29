@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "record:demo": "node scripts/record-demo-fixture.mjs"
   },
   "dependencies": {
     "firebase": "^12.18.0",

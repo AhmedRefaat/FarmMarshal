@@ -23,6 +23,7 @@ import {
   Routes,
 } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth';
+import { asset } from './assets';
 import { LocaleProvider, LocaleSwitch, useI18n } from './i18n';
 import type { MessageKey } from './i18n';
 import Login from './pages/Login';
@@ -51,7 +52,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           the sidebar stays purely "where can I go", never "who am I". */}
       <header className="topbar">
         <div className="brand">
-          <img className="brand-mark" src="/logo.png" alt="" />
+          <img className="brand-mark" src={asset('logo.png')} alt="" />
           <span className="brand-name">
             <b>{t('app.name')}</b>
             <small>{t('app.tagline')}</small>
@@ -137,7 +138,9 @@ export default function App() {
     // Locale sits ABOVE auth: the sign-in card must already be localized.
     <LocaleProvider>
       <AuthProvider>
-        <BrowserRouter>
+        {/* basename carries the deploy sub-path: '/' in dev, '/<repo>/' on
+            GitHub Pages. Without it every route 404s on a project site. */}
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AppRoutes />
         </BrowserRouter>
       </AuthProvider>

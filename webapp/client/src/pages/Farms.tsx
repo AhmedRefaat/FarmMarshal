@@ -16,6 +16,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { asset } from '../assets';
 import { useErrorMessage, useI18n } from '../i18n';
 import type { Farm, Issue, Task } from '../types';
 
@@ -49,12 +50,12 @@ interface FarmRow {
  * more for recognition than the picture actually depicting that field.
  */
 const COVERS = [
-  '/images/01-farm-overview.jpg',
-  '/images/16-greenhouse-overview.jpg',
-  '/images/20-al-waha-overview.jpg',
-  '/images/21-desert-expansion-overview.jpg',
-  '/images/11-follow-up-aerial.jpg',
-  '/images/02-healthy-previous.jpg',
+  asset('images/01-farm-overview.jpg'),
+  asset('images/16-greenhouse-overview.jpg'),
+  asset('images/20-al-waha-overview.jpg'),
+  asset('images/21-desert-expansion-overview.jpg'),
+  asset('images/11-follow-up-aerial.jpg'),
+  asset('images/02-healthy-previous.jpg'),
 ];
 
 function coverFor(id: string): string {

@@ -13,6 +13,9 @@ import react from '@vitejs/plugin-react';
  */
 export default defineConfig({
   plugins: [react()],
+  // GitHub Pages serves a project site from '/<repo>/', so the workflow sets
+  // VITE_BASE. Everything else (dev, local preview) stays at the root.
+  base: process.env.VITE_BASE || '/',
   server: {
     proxy: {
       // The server registers routes at the root (/auth/login, /tasks, …),
