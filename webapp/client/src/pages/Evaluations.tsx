@@ -76,12 +76,15 @@ export default function Evaluations() {
 
   return (
     <>
-      <h1>{t('evaluations.title')}</h1>
-      <p className="muted">
-        {me?.role === 'owner'
-          ? t('evaluations.subtitleOwner')
-          : t('evaluations.subtitleModerator')}
-      </p>
+      <div className="pagehead">
+        <p className="eyebrow">{t('evaluations.eyebrow')}</p>
+        <h1>{t('evaluations.title')}</h1>
+        <p>
+          {me?.role === 'owner'
+            ? t('evaluations.subtitleOwner')
+            : t('evaluations.subtitleModerator')}
+        </p>
+      </div>
 
       <table className="table">
         <thead>

@@ -186,11 +186,14 @@ export default function ExpertNetwork() {
 
   return (
     <>
-      <h1>{t('expert.title')}</h1>
-      <p className="muted">
-        {t('expert.subtitle', { count: experts.length })}
-        {me ? ` ${t('expert.subtitleRegistered')}` : ''}
-      </p>
+      <div className="pagehead">
+        <p className="eyebrow">{t('expert.eyebrow')}</p>
+        <h1>{t('expert.title')}</h1>
+        <p>
+          {t('expert.subtitle', { count: experts.length })}
+          {me ? ` ${t('expert.subtitleRegistered')}` : ''}
+        </p>
+      </div>
       {error && <p className="error">{error}</p>}
 
       <div className="split">

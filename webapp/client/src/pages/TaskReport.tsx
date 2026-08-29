@@ -52,7 +52,7 @@ export default function TaskReport() {
   if (error) return <p className="error">{error}</p>;
   if (!report) return <p className="muted">{t('report.loading')}</p>;
 
-  const { task, farm, reporter, assignee, worker, issue, issueEvents, comments, milestones } =
+  const { task, farm, reporter, assignee, worker, issue, issueEvents, comments, milestones, costs, costTotal } =
     report;
 
   return (
@@ -191,6 +191,39 @@ export default function TaskReport() {
           <p className="desc"><bdi>{task.reviewNote}</bdi></p>
         </section>
       )}
+
+      {/* The demo's audit trail stops at "verified"; an owner also has to answer
+          "what did it cost?", so settlement rows share the same timeline. */}
+      <section className="panel">
+        <h2>{t('report.settlement')}</h2>
+        <ol className="audit">
+          {costs.map((c) => (
+            <li key={c.id} className="money">
+              <time>{fmt.dateTime(c.createdAt)}</time>
+              <span className="what">
+                <b>{fmt.currency(c.amount, c.currency)}</b>
+                <small>
+                  {t(`report.costCategory.${c.category}` as MessageKey)}
+                  {c.note ? ` · ${c.note}` : ''}
+                </small>
+              </span>
+            </li>
+          ))}
+          {costs.length === 0 && <li className="muted">{t('report.noCosts')}</li>}
+        </ol>
+        {costs.length > 0 && (
+          <div className="kpis">
+            <div className="kpi orange">
+              <b>{fmt.currency(costTotal.expense, costTotal.currency)}</b>
+              {t('report.costTotal')}
+            </div>
+            <div className={costTotal.net < 0 ? 'kpi red' : 'kpi green'}>
+              <b>{fmt.currency(costTotal.net, costTotal.currency)}</b>
+              {t('report.costNet')}
+            </div>
+          </div>
+        )}
+      </section>
 
       {(task.beforePhotoUrl || task.afterPhotoUrl) && (
         <section className="panel">

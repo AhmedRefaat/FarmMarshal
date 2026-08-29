@@ -133,6 +133,31 @@ export const ar = {
   'task.stopSend': 'إيقاف وإرسال',
 
   // -------------------------------------------------------------------- farms
+  'dashboard.subtitle': 'كل ما يجري في أرضك الآن، في مكان واحد.',
+  'tasks.subtitle':
+    'كل المهام على أرضك، من أول بلاغ حتى الإصلاح المؤكّد.',
+  'finance.subtitle':
+    'ما حققته كل مزرعة وما أنفقته، وإلى أين ذهبت الأموال.',
+  'task.sampleEvidence': 'صور توضيحية — لم يُرفع دليل بعد',
+  'farmDetail.heroCaption': 'أحدث مشهد جوي — صور تجريبية',
+  'dashboard.eyebrow': 'مركز قيادة المالك',
+  'tasks.eyebrow': 'العمليات الحقلية',
+  'taskDetail.eyebrow': 'عملية حقلية قابلة للتتبع',
+  'farmDetail.eyebrow': 'مساحة عمل المشروع',
+  'evaluations.eyebrow': 'أداء الفريق',
+  'finance.eyebrow': 'السجل المالي',
+  'expert.eyebrow': 'مسار التوصيات المتوازي',
+  'report.settlement': 'تكلفة الإجراء التصحيحي',
+  'report.noCosts': 'لم تُسجّل أي مصروفات على هذه المهمة.',
+  'report.costTotal': 'إجمالي المنصرف',
+  'report.costNet': 'الأثر الصافي',
+  'report.costCategory.seeds': 'بذور',
+  'report.costCategory.fertilizer': 'أسمدة',
+  'report.costCategory.labor': 'عمالة',
+  'report.costCategory.fuel': 'وقود',
+  'report.costCategory.equipment': 'معدات',
+  'report.costCategory.harvest_sale': 'بيع محصول',
+  'report.costCategory.other': 'أخرى',
   'report.eyebrow': 'سلسلة العهدة',
   'report.subtitle':
     'من قام بالإجراء، ومتى، وأين، وما الأدلة المرفقة، ومن قبِلَها.',

@@ -95,7 +95,11 @@ export default function Finance() {
 
   return (
     <>
-      <h1>💰 {t('finance.title')}</h1>
+      <div className="pagehead">
+        <p className="eyebrow">{t('finance.eyebrow')}</p>
+        <h1>{t('finance.title')}</h1>
+        <p>{t('finance.subtitle')}</p>
+      </div>
 
       {/* Farm scope selector — the accountant reviews per farm */}
       <div className="chips">

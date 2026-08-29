@@ -47,7 +47,11 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1>{t('dashboard.title')}</h1>
+      <div className="pagehead">
+        <p className="eyebrow">{t('dashboard.eyebrow')}</p>
+        <h1>{t('dashboard.title')}</h1>
+        <p>{t('dashboard.subtitle')}</p>
+      </div>
 
       {/* KPI row: the owner's core questions. Captions are noun phrases, not
           sentences, because the count renders as a separate visual element. */}

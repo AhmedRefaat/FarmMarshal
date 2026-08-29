@@ -262,6 +262,9 @@ html[lang='en'] .table th { text-transform: uppercase; letter-spacing: .08em; }
 .hero-body h2 { margin-block-end: .25rem; }
 .hero-body p { color: #e2e8f0; max-width: 60ch; }
 
+/* Banner image under a page title. */
+.hero-strip { height: 240px; margin-block: 1.2rem; border-radius: var(--r-lg); }
+
 /* ---------- Task detail ---------- */
 .desc { margin: .6rem 0; }
 .muted { color: var(--muted); font-size: .88rem; }

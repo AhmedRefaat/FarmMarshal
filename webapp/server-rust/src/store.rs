@@ -141,6 +141,19 @@ pub fn seed() -> Db {
     // Mid-workflow starter issue.
     db.issues.push(Issue { id: "is-1".into(), farm_id: "f-1".into(), kind: "water_leak".into(), stage: "inspected".into(), source: "human_report".into(), title: "Suspected leak — main line sector C".into(), severity: "high".into(), task_id: Some("t-1".into()), created_by: "u-mod".into(), created_at: now - 43_200_000, closed_at: None, metadata: None });
 
+    // Task-linked ledger rows: what the corrective action on t-1 cost.
+    for (id, cat, amount, note) in [
+        ("fe-7", "equipment", 2750.0, "Replacement drip line and couplings"),
+        ("fe-8", "labor", 900.0, "Repair crew — half day"),
+    ] {
+        db.schedules.push(serde_json::json!({
+            "id": id, "ledger": true, "farmId": "f-1", "taskId": "t-1",
+            "type": "expense", "category": cat, "amount": amount,
+            "currency": "EGP", "note": note,
+            "createdBy": "u-mod", "createdAt": now - 10_800_000
+        }));
+    }
+
     // P2 water devices + tariff + 48h telemetry WITH night-flow leak fixture.
     db.devices.insert("dev-meter-1".into(), Device { id: "dev-meter-1".into(), farm_id: "f-1".into(), device_type: "water_meter".into(), vendor: Some("GenericPulse".into()), label: "Main line meter".into(), status: "online".into(), last_seen_at: Some(now), created_at: now });
     db.devices.insert("dev-valve-1".into(), Device { id: "dev-valve-1".into(), farm_id: "f-1".into(), device_type: "valve".into(), vendor: Some("GenericRelay".into()), label: "Valve C2".into(), status: "online".into(), last_seen_at: Some(now), created_at: now });

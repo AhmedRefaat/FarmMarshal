@@ -133,6 +133,20 @@ export interface Milestone {
   note?: string;
 }
 
+/** A ledger row booked against one task — what the fix actually cost. */
+export interface TaskCost {
+  id: string;
+  farmId: string;
+  taskId?: string;
+  type: 'expense' | 'income';
+  category: string;
+  amount: number;
+  currency: string;
+  note?: string;
+  createdById?: string;
+  createdAt: number;
+}
+
 /** GET /tasks/:id/report — everything needed to explain one task end to end. */
 export interface TaskReport {
   task: Task;
@@ -144,6 +158,13 @@ export interface TaskReport {
   issueEvents: IssueEvent[];
   comments: Comment[];
   milestones: Milestone[];
+  costs: TaskCost[];
+  costTotal: {
+    expense: number;
+    income: number;
+    net: number;
+    currency: string;
+  };
 }
 
 // ---------------------------------------------------------------------------

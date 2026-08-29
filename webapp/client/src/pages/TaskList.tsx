@@ -35,7 +35,11 @@ export default function TaskList() {
 
   return (
     <>
-      <h1>{t('tasks.title')}</h1>
+      <div className="pagehead">
+        <p className="eyebrow">{t('tasks.eyebrow')}</p>
+        <h1>{t('tasks.title')}</h1>
+        <p>{t('tasks.subtitle')}</p>
+      </div>
       {/* Filter chips — one per lifecycle state */}
       <div className="chips">
         {STATUSES.map((s) => (

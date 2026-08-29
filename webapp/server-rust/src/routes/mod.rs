@@ -353,6 +353,21 @@ async fn task_report(State(state): App, Path(id): Path<String>, headers: HeaderM
         at.map(|at| { let mut v = json!({ "key": key, "at": at, "by": by }); if let Some(n) = note { v["note"] = json!(n); } v })
     }).collect();
 
+    // What the corrective action cost. Only rows booked against THIS task —
+    // the rest of the farm ledger stays behind /finances.
+    let mut costs: Vec<Value> = db.schedules.iter()
+        .filter(|s| s.get("ledger").is_some() && s["taskId"] == json!(task.id))
+        .cloned().collect();
+    costs.sort_by_key(|c| c["createdAt"].as_u64().unwrap_or(0));
+    let sum = |kind: &str| -> f64 {
+        costs.iter().filter(|c| c["type"] == json!(kind))
+            .filter_map(|c| c["amount"].as_f64()).sum()
+    };
+    let (expense, income) = (sum("expense"), sum("income"));
+    // A mixed-currency ledger cannot be summed; the demo is single-currency
+    // and the first row decides the label.
+    let currency = costs.first().and_then(|c| c["currency"].as_str()).unwrap_or("EGP").to_string();
+
     ok_json(json!({
         "task": task,
         "farm": issue.and_then(|i| db.farms.get(&i.farm_id)).map(|f| serde_json::to_value(f).unwrap()).unwrap_or(Value::Null),
@@ -365,6 +380,8 @@ async fn task_report(State(state): App, Path(id): Path<String>, headers: HeaderM
         "issueEvents": issue.map(|i| db.issue_events.iter().filter(|e| e.issue_id == i.id).collect::<Vec<_>>()).unwrap_or_default(),
         "comments": comments,
         "milestones": milestones,
+        "costs": costs,
+        "costTotal": { "expense": expense, "income": income, "net": income - expense, "currency": currency },
     }))
 }
 

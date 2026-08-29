@@ -75,7 +75,15 @@ export default function FarmDetail() {
       <p className="muted">
         <Link to="/farms">‹ {t('farmDetail.allFarms')}</Link>
       </p>
-      <h1><bdi>{farm.name}</bdi></h1>
+      <div className="pagehead">
+        <p className="eyebrow">{t('farmDetail.eyebrow')}</p>
+        <h1><bdi>{farm.name}</bdi></h1>
+      </div>
+
+      <figure className="photo hero-strip">
+        <img src="/images/01-farm-overview.jpg" alt="" />
+        <figcaption>{t('farmDetail.heroCaption')}</figcaption>
+      </figure>
 
       <section>
         <h2>{t('farmDetail.issues')}</h2>

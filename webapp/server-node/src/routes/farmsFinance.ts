@@ -25,14 +25,14 @@
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { requirePermission, type ActorContext } from '../authz.js';
-import { getFarm, listFarms } from '../store.js';
+import { getFarm, getTask, listFarms } from '../store.js';
 import { audit } from '../audit.js';
 import { makeLogger } from '../logger.js';
 
 const log = makeLogger('finance');
 
 /** One ledger row. */
-interface FinanceEntry {
+export interface FinanceEntry {
   id: string;
   farmId: string;
   /** 'expense' (money out) or 'income' (money in, e.g. harvest sale). */
@@ -41,6 +41,8 @@ interface FinanceEntry {
   amount: number;
   currency: string;
   note?: string;
+  /** Set when the spend was incurred fixing one specific task. */
+  taskId?: string;
   createdById: string;
   createdAt: number;
 }
@@ -60,7 +62,22 @@ const entries: FinanceEntry[] = [
   { id: 'fe-4', farmId: 'f-2', type: 'expense', category: 'fertilizer', amount: 9800, currency: 'EGP', note: 'Foliar micronutrients — spring flush', createdById: 'u-mod', createdAt: Date.now() - 20 * 86400e3 },
   { id: 'fe-5', farmId: 'f-2', type: 'income', category: 'harvest_sale', amount: 64000, currency: 'EGP', note: 'Navel orange first pick', createdById: 'u-owner', createdAt: Date.now() - 6 * 86400e3 },
   { id: 'fe-6', farmId: 'f-3', type: 'expense', category: 'equipment', amount: 15500, currency: 'EGP', note: 'Windbreak posts and netting', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
+  // Task-linked spend: what the corrective action itself cost.
+  { id: 'fe-7', farmId: 'f-1', type: 'expense', category: 'equipment', amount: 2750, currency: 'EGP', note: 'Replacement drip line and couplings', taskId: 't-1', createdById: 'u-mod', createdAt: Date.now() - 3 * 86400e3 },
+  { id: 'fe-8', farmId: 'f-1', type: 'expense', category: 'labor', amount: 900, currency: 'EGP', note: 'Repair crew — half day', taskId: 't-1', createdById: 'u-mod', createdAt: Date.now() - 3 * 86400e3 },
+  { id: 'fe-9', farmId: 'f-2', type: 'expense', category: 'labor', amount: 1800, currency: 'EGP', note: 'Emitter flush and pressure test', taskId: 't-4', createdById: 'u-mod', createdAt: Date.now() - 9 * 86400e3 },
 ];
+
+/**
+ * Ledger rows booked against one task, oldest first.
+ * Callers MUST have already authorized access to that task — this helper does
+ * no scoping of its own.
+ */
+export function financeEntriesForTask(taskId: string): FinanceEntry[] {
+  return entries
+    .filter((e) => e.taskId === taskId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
 
 /**
  * Least privilege for financial data, derived from verified memberships only:
@@ -164,6 +181,17 @@ export default async function farmFinanceRoutes(app: FastifyInstance) {
       });
       return reply.code(403).send({ error: 'Forbidden' });
     }
+    // A task reference must point at a real task on the SAME farm, otherwise
+    // the ledger row would leak the existence of another tenant's work.
+    if (b.taskId !== undefined) {
+      if (typeof b.taskId !== 'string') {
+        return reply.code(400).send({ error: 'taskId must be a string' });
+      }
+      const linked = getTask(b.taskId);
+      if (!linked || linked.farmId !== b.farmId) {
+        return reply.code(400).send({ error: 'taskId does not belong to this farm' });
+      }
+    }
     const entry: FinanceEntry = {
       id: randomUUID(),
       farmId: b.farmId,
@@ -172,6 +200,7 @@ export default async function farmFinanceRoutes(app: FastifyInstance) {
       amount: b.amount,
       currency: b.currency ?? 'EGP',
       note: b.note,
+      taskId: typeof b.taskId === 'string' ? b.taskId : undefined,
       createdById: actor.userId,
       createdAt: Date.now(),
     };

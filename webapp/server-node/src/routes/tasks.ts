@@ -36,6 +36,7 @@ import {
   listTasks,
   updateTask,
 } from '../store.js';
+import { financeEntriesForTask } from './farmsFinance.js';
 
 /** Farms the caller belongs to. Empty means the caller is in no tenant. */
 function farmIdsFor(userId: string): Set<string> {
@@ -108,6 +109,15 @@ export default async function taskRoutes(app: FastifyInstance) {
     const issue = listIssues({ farmId: task.farmId }).find((i) => i.taskId === task.id);
     const comments = listComments(task.id);
 
+    // What the corrective action cost. Only the people who can already read the
+    // task get this, and only rows booked against this task — the rest of the
+    // farm ledger stays behind /finances.
+    const costs = financeEntriesForTask(task.id);
+    const sum = (type: 'expense' | 'income') =>
+      costs.filter((c) => c.type === type).reduce((n, c) => n + c.amount, 0);
+    const expense = sum('expense');
+    const income = sum('income');
+
     return {
       task,
       farm: getFarm(task.farmId) ?? null,
@@ -119,6 +129,15 @@ export default async function taskRoutes(app: FastifyInstance) {
       issue: issue ?? null,
       issueEvents: issue ? listIssueEvents(issue.id) : [],
       comments,
+      costs,
+      costTotal: {
+        expense,
+        income,
+        net: income - expense,
+        // A mixed-currency ledger cannot be summed; the demo is single-currency
+        // and the first row decides the label.
+        currency: costs[0]?.currency ?? 'EGP',
+      },
       // Lifecycle stamps flattened into one ordered list for the timeline UI.
       // `by` is a display name (never an internal id) so the report reads as a
       // narrative without the client needing a second lookup.

@@ -104,7 +104,10 @@ export default function TaskDetail() {
   return (
     <>
       {/* 1 ── Header */}
-      <h1><bdi>{task.title}</bdi></h1>
+      <div className="pagehead">
+        <p className="eyebrow">{t('taskDetail.eyebrow')}</p>
+        <h1><bdi>{task.title}</bdi></h1>
+      </div>
       <span className={`badge b-${task.status}`}>
         {t(`status.${task.status}` as MessageKey)}
       </span>
@@ -126,19 +129,35 @@ export default function TaskDetail() {
         <Link to={`/tasks/${task.id}/report`}>📄 {t('task.openReport')}</Link>
       </p>
 
-      {/* 2 ── Evidence photos */}
+      {/* 2 ── Evidence photos. With nothing uploaded the workflow reads as
+          broken, so a clearly-labelled sample pair stands in for the demo. */}
       <div className="photos">
-        {task.beforePhotoUrl && (
-          <figure>
-            <figcaption>{t('task.before')}</figcaption>
-            <img src={task.beforePhotoUrl} alt={t('task.before')} />
-          </figure>
-        )}
-        {task.afterPhotoUrl && (
-          <figure>
-            <figcaption>{t('task.after')}</figcaption>
-            <img src={task.afterPhotoUrl} alt={t('task.after')} />
-          </figure>
+        {task.beforePhotoUrl || task.afterPhotoUrl ? (
+          <>
+            {task.beforePhotoUrl && (
+              <figure className="photo">
+                <figcaption>{t('task.before')}</figcaption>
+                <img src={task.beforePhotoUrl} alt={t('task.before')} />
+              </figure>
+            )}
+            {task.afterPhotoUrl && (
+              <figure className="photo">
+                <figcaption>{t('task.after')}</figcaption>
+                <img src={task.afterPhotoUrl} alt={t('task.after')} />
+              </figure>
+            )}
+          </>
+        ) : (
+          <>
+            <figure className="photo">
+              <figcaption>{`${t('task.before')} · ${t('task.sampleEvidence')}`}</figcaption>
+              <img src="/images/07-irrigation-fault-before.jpg" alt={t('task.before')} />
+            </figure>
+            <figure className="photo">
+              <figcaption>{`${t('task.after')} · ${t('task.sampleEvidence')}`}</figcaption>
+              <img src="/images/10-irrigation-after-repair.jpg" alt={t('task.after')} />
+            </figure>
+          </>
         )}
       </div>
 

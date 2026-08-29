@@ -125,6 +125,32 @@ export const en = {
   'task.stopSend': 'Stop and send',
 
   // -------------------------------------------------------------------- farms
+  'dashboard.subtitle':
+    'Everything happening across your land right now, in one place.',
+  'tasks.subtitle':
+    'Every assignment on your land, from first report to verified fix.',
+  'finance.subtitle':
+    'What each farm earned and spent, and where the money went.',
+  'task.sampleEvidence': 'Sample imagery — no evidence uploaded yet',
+  'farmDetail.heroCaption': 'Latest aerial overview — demo imagery',
+  'dashboard.eyebrow': 'Owner command center',
+  'tasks.eyebrow': 'Field operations',
+  'taskDetail.eyebrow': 'Trackable field operation',
+  'farmDetail.eyebrow': 'Project workspace',
+  'evaluations.eyebrow': 'Team performance',
+  'finance.eyebrow': 'Financial ledger',
+  'expert.eyebrow': 'Parallel recommendation workflow',
+  'report.settlement': 'Cost of the corrective action',
+  'report.noCosts': 'No spend has been booked against this task.',
+  'report.costTotal': 'Total spent',
+  'report.costNet': 'Net effect',
+  'report.costCategory.seeds': 'Seeds',
+  'report.costCategory.fertilizer': 'Fertilizer',
+  'report.costCategory.labor': 'Labour',
+  'report.costCategory.fuel': 'Fuel',
+  'report.costCategory.equipment': 'Equipment',
+  'report.costCategory.harvest_sale': 'Harvest sale',
+  'report.costCategory.other': 'Other',
   'report.eyebrow': 'Chain of custody',
   'report.subtitle':
     'Who acted, when, where, what evidence was attached and who accepted it.',
