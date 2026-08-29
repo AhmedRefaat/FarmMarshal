@@ -34,6 +34,11 @@ export const ar = {
   'nav.finance': 'المالية',
   'nav.experts': 'شبكة الخبراء',
   'nav.logout': 'تسجيل الخروج ({{name}})',
+  'nav.workspace': 'مساحة عمل المالك',
+
+  // Environment marker in the product bar, so a screenshot of the demo is
+  // never mistaken for production data.
+  'app.demoData': 'بيانات تجريبية',
 
   // ------------------------------------------------------------------ generic
   'common.loading': 'جارٍ التحميل…',
@@ -128,6 +133,14 @@ export const ar = {
   'task.stopSend': 'إيقاف وإرسال',
 
   // -------------------------------------------------------------------- farms
+  'report.eyebrow': 'سلسلة العهدة',
+  'report.subtitle':
+    'من قام بالإجراء، ومتى، وأين، وما الأدلة المرفقة، ومن قبِلَها.',
+  'report.responsible': 'المسؤول: {{who}}',
+  'report.lifecycle': 'مراحل المهمة',
+  'farms.eyebrow': 'محفظة المالك',
+  'farms.open': 'فتح المشروع ←',
+  'farms.photoAlt': 'صورة جوية لـ {{name}}',
   'farms.title': 'مزارعي',
   'farms.subtitle': {
     zero: 'لا توجد مزارع تحت مسؤوليتك.',

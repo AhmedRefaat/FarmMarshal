@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+  role="img"
+  aria-labelledby="farmMarshalTitle farmMarshalDescription"
+>
+  <title id="farmMarshalTitle">Farm Marshal App Icon</title>
+
+  <desc id="farmMarshalDescription">
+    A navy police-style cap with a gold star badge and band above a white
+    shield holding three green leaves, on a dark green bokeh background.
+  </desc>
+
+  <defs>
+    <!-- Dark green application background -->
+    <linearGradient
+      id="backgroundGradient"
+      x1="32"
+      y1="24"
+      x2="470"
+      y2="490"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#0B8A68" />
+      <stop offset="0.52" stop-color="#046148" />
+      <stop offset="1" stop-color="#012F27" />
+    </linearGradient>
+
+    <!-- Cap body -->
+    <linearGradient
+      id="capGradient"
+      x1="130"
+      y1="45"
+      x2="400"
+      y2="200"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#284A6B" />
+      <stop offset="0.5" stop-color="#132C45" />
+      <stop offset="1" stop-color="#081827" />
+    </linearGradient>
+
+    <!-- Gold band and badge -->
+    <linearGradient
+      id="goldGradient"
+      x1="150"
+      y1="110"
+      x2="360"
+      y2="210"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#FFE9A8" />
+      <stop offset="0.45" stop-color="#EFC24A" />
+      <stop offset="1" stop-color="#B87918" />
+    </linearGradient>
+
+    <!-- Shield interior -->
+    <linearGradient
+      id="shieldInterior"
+      x1="256"
+      y1="215"
+      x2="256"
+      y2="470"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#F2F9EA" />
+    </linearGradient>
+
+    <!-- Light leaf -->
+    <linearGradient
+      id="leafLight"
+      x1="150"
+      y1="270"
+      x2="280"
+      y2="420"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#B9E66C" />
+      <stop offset="1" stop-color="#62AD42" />
+    </linearGradient>
+
+    <!-- Dark leaf -->
+    <linearGradient
+      id="leafDark"
+      x1="240"
+      y1="270"
+      x2="382"
+      y2="425"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#75C34E" />
+      <stop offset="1" stop-color="#2F873F" />
+    </linearGradient>
+
+    <!-- Soft icon shadow -->
+    <filter
+      id="softShadow"
+      x="-20%"
+      y="-20%"
+      width="140%"
+      height="150%"
+    >
+      <feDropShadow
+        dx="0"
+        dy="10"
+        stdDeviation="11"
+        flood-color="#001D17"
+        flood-opacity="0.28"
+      />
+    </filter>
+
+    <!-- Blur for background bokeh -->
+    <filter id="bokehBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" />
+    </filter>
+  </defs>
+
+  <!-- =========================================================
+       BACKGROUND
+       ========================================================= -->
+  <g id="background">
+    <rect
+      x="8"
+      y="8"
+      width="496"
+      height="496"
+      rx="112"
+      fill="url(#backgroundGradient)"
+    />
+
+    <!-- Subtle inner border -->
+    <rect
+      x="18"
+      y="18"
+      width="476"
+      height="476"
+      rx="100"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-opacity="0.08"
+      stroke-width="3"
+    />
+
+    <!-- Bokeh highlights -->
+    <g filter="url(#bokehBlur)" opacity="0.5">
+      <circle cx="95" cy="90" r="34" fill="#3FA37A" />
+      <circle cx="430" cy="70" r="46" fill="#3FA37A" />
+      <circle cx="460" cy="260" r="30" fill="#3FA37A" />
+      <circle cx="450" cy="430" r="55" fill="#0F5B45" />
+      <circle cx="70" cy="430" r="42" fill="#3FA37A" />
+      <circle cx="60" cy="250" r="24" fill="#3FA37A" />
+      <circle cx="256" cy="480" r="60" fill="#0F5B45" />
+    </g>
+  </g>
+
+  <!-- =========================================================
+       SHIELD
+       ========================================================= -->
+  <g id="shield" filter="url(#softShadow)">
+    <!-- White outer shield -->
+    <path
+      d="
+        M256 195
+        C303 219 352 229 405 221
+        V310
+        C405 386 351 448 256 481
+        C161 448 107 386 107 310
+        V221
+        C160 229 209 219 256 195
+        Z
+      "
+      fill="#FFFFFF"
+    />
+
+    <!-- Green shield border -->
+    <path
+      d="
+        M256 214
+        C298 234 342 243 384 238
+        V307
+        C384 371 340 423 256 454
+        C172 423 128 371 128 307
+        V238
+        C170 243 214 234 256 214
+        Z
+      "
+      fill="url(#shieldInterior)"
+      stroke="#5BA647"
+      stroke-width="11"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  <!-- =========================================================
+       PLANT AND LEAVES
+       ========================================================= -->
+  <g id="plant">
+    <!-- Main central stem -->
+    <path
+      d="M256 424 C255 388 256 350 257 310"
+      fill="none"
+      stroke="#32833D"
+      stroke-width="13"
+      stroke-linecap="round"
+    />
+
+    <!-- Center leaf -->
+    <path
+      d="
+        M257 320
+        C220 292 214 244 256 206
+        C299 244 294 292 257 320
+        Z
+      "
+      fill="url(#leafLight)"
+      stroke="#3C8D40"
+      stroke-width="6"
+      stroke-linejoin="round"
+    />
+
+    <!-- Left leaf -->
+    <path
+      d="
+        M242 356
+        C188 358 143 330 122 282
+        C179 268 228 292 242 356
+        Z
+      "
+      fill="url(#leafDark)"
+      stroke="#28723A"
+      stroke-width="6"
+      stroke-linejoin="round"
+    />
+
+    <!-- Right leaf -->
+    <path
+      d="
+        M270 356
+        C284 292 333 268 390 282
+        C369 330 324 358 270 356
+        Z
+      "
+      fill="url(#leafLight)"
+      stroke="#3C8D40"
+      stroke-width="6"
+      stroke-linejoin="round"
+    />
+
+    <!-- Leaf veins -->
+    <g
+      fill="none"
+      stroke="#29763B"
+      stroke-width="5"
+      stroke-linecap="round"
+      opacity="0.75"
+    >
+      <path d="M256 302 L256 224" />
+      <path d="M236 340 C204 322 176 305 150 292" />
+      <path d="M278 340 C310 322 338 305 364 292" />
+    </g>
+  </g>
+
+  <!-- =========================================================
+       OFFICER-STYLE CAP
+       ========================================================= -->
+  <g id="officerCap">
+    <!-- Cap crown -->
+    <path
+      d="
+        M120 150
+        C110 88 170 52 256 50
+        C342 52 402 88 392 150
+        C392 150 340 168 256 168
+        C172 168 120 150 120 150
+        Z
+      "
+      fill="url(#capGradient)"
+      stroke="#FFFFFF"
+      stroke-width="9"
+      stroke-linejoin="round"
+      paint-order="stroke"
+    />
+
+    <!-- Crown shine -->
+    <path
+      d="M158 96 C182 74 216 60 250 58 C226 78 200 100 178 128 Z"
+      fill="#3E6488"
+      opacity="0.35"
+    />
+
+    <!-- Gold band -->
+    <path
+      d="
+        M114 150
+        L398 150
+        L398 178
+        C398 178 340 194 256 194
+        C172 194 114 178 114 178
+        Z
+      "
+      fill="url(#goldGradient)"
+      stroke="#8A5A12"
+      stroke-width="3"
+      stroke-linejoin="round"
+    />
+
+    <!-- Side studs -->
+    <circle cx="122" cy="163" r="10" fill="url(#goldGradient)" stroke="#8A5A12" stroke-width="3" />
+    <circle cx="390" cy="163" r="10" fill="url(#goldGradient)" stroke="#8A5A12" stroke-width="3" />
+
+    <!-- Star badge -->
+    <path
+      d="M256 110 L263.7 131.5 L284.3 121.7 L274.5 142.3 L296 150 L274.5 157.7 L284.3 178.3 L263.7 168.5 L256 190 L248.3 168.5 L227.7 178.3 L237.5 157.7 L216 150 L237.5 142.3 L227.7 121.7 L248.3 131.5 Z"
+      fill="url(#goldGradient)"
+      stroke="#8A5A12"
+      stroke-width="3"
+      stroke-linejoin="round"
+    />
+    <circle cx="256" cy="150" r="13" fill="#FFF4D6" stroke="#8A5A12" stroke-width="3" />
+
+    <!-- Cap brim -->
+    <path
+      d="
+        M168 178
+        C168 178 210 190 256 190
+        C302 190 344 178 344 178
+        L354 198
+        C354 198 306 212 256 212
+        C206 212 158 198 158 198
+        Z
+      "
+      fill="url(#capGradient)"
+      stroke="#FFFFFF"
+      stroke-width="9"
+      stroke-linejoin="round"
+      paint-order="stroke"
+    />
+  </g>
+</svg>

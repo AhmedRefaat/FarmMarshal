@@ -31,6 +31,11 @@ export const en = {
   'nav.finance': 'Finance',
   'nav.experts': 'Expert network',
   'nav.logout': 'Log out ({{name}})',
+  'nav.workspace': 'Owner workspace',
+
+  // Environment marker in the product bar, so a screenshot of the demo is
+  // never mistaken for production data.
+  'app.demoData': 'Demo data',
 
   // ------------------------------------------------------------------ generic
   'common.loading': 'Loading…',
@@ -120,6 +125,14 @@ export const en = {
   'task.stopSend': 'Stop and send',
 
   // -------------------------------------------------------------------- farms
+  'report.eyebrow': 'Chain of custody',
+  'report.subtitle':
+    'Who acted, when, where, what evidence was attached and who accepted it.',
+  'report.responsible': 'Responsible: {{who}}',
+  'report.lifecycle': 'Task lifecycle',
+  'farms.eyebrow': 'Owner portfolio',
+  'farms.open': 'Open project →',
+  'farms.photoAlt': 'Aerial view of {{name}}',
   'farms.title': 'My farms',
   'farms.subtitle': {
     one: '{{count}} farm under your responsibility.',

@@ -42,6 +42,27 @@ interface FarmRow {
   tasks: Task[];
 }
 
+/**
+ * Cover imagery for the portfolio cards. Farms carry no photo field yet, so the
+ * cover is derived deterministically from the farm id: the same farm always
+ * shows the same picture across reloads and across sessions, which matters far
+ * more for recognition than the picture actually depicting that field.
+ */
+const COVERS = [
+  '/images/01-farm-overview.jpg',
+  '/images/16-greenhouse-overview.jpg',
+  '/images/20-al-waha-overview.jpg',
+  '/images/21-desert-expansion-overview.jpg',
+  '/images/11-follow-up-aerial.jpg',
+  '/images/02-healthy-previous.jpg',
+];
+
+function coverFor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return COVERS[hash % COVERS.length];
+}
+
 export default function Farms() {
   const { t, fmt } = useI18n();
   const describeError = useErrorMessage();
@@ -80,10 +101,13 @@ export default function Farms() {
 
   return (
     <>
-      <h1>{t('farms.title')}</h1>
-      {/* Arabic agrees the noun with the count, so the whole sentence is one
-          plural-aware key rather than a number glued to a bare noun. */}
-      <p className="muted">{t('farms.subtitle', { count: rows.length })}</p>
+      <div className="pagehead">
+        <p className="eyebrow">{t('farms.eyebrow')}</p>
+        <h1>{t('farms.title')}</h1>
+        {/* Arabic agrees the noun with the count, so the whole sentence is one
+            plural-aware key rather than a number glued to a bare noun. */}
+        <p>{t('farms.subtitle', { count: rows.length })}</p>
+      </div>
 
       {/* Portfolio-wide roll-up across every farm. */}
       <div className="kpis">
@@ -104,24 +128,35 @@ export default function Farms() {
             issues.filter((i) => bucketOf(i) === b).length;
           return (
             <Link key={farm.id} to={`/farms/${farm.id}`} className="farm-card">
-              <h3><bdi>{farm.name}</bdi></h3>
-              <p className="muted">
-                {t('farms.cardCounts', {
-                  tasks: fmt.number(tasks.length),
-                  issues: fmt.number(issues.length),
-                })}
-              </p>
-              <div className="chips">
-                <span className="chip red">
-                  {fmt.number(n('new'))} {t('farms.new')}
+              <figure className="photo">
+                <img src={coverFor(farm.id)} alt={t('farms.photoAlt', { name: farm.name })} />
+              </figure>
+              <div className="farm-card-body">
+                <h3><bdi>{farm.name}</bdi></h3>
+                <p className="muted">
+                  {t('farms.cardCounts', {
+                    tasks: fmt.number(tasks.length),
+                    issues: fmt.number(issues.length),
+                  })}
+                </p>
+              </div>
+              {/* Scoreboard, not a sentence: the owner scans these three
+                  numbers across every card before reading any farm name. */}
+              <div className="issue-summary">
+                <span className="reported">
+                  <b>{fmt.number(n('new'))}</b>
+                  {t('farms.new')}
                 </span>
-                <span className="chip orange">
-                  {fmt.number(n('active'))} {t('farms.active')}
+                <span className={n('active') === 0 ? 'active zero' : 'active'}>
+                  <b>{fmt.number(n('active'))}</b>
+                  {t('farms.active')}
                 </span>
-                <span className="chip green">
-                  {fmt.number(n('solved'))} {t('farms.solved')}
+                <span className="solved">
+                  <b>{fmt.number(n('solved'))}</b>
+                  {t('farms.solved')}
                 </span>
               </div>
+              <div className="farm-card-foot">{t('farms.open')}</div>
             </Link>
           );
         })}

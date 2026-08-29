@@ -47,39 +47,52 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <h2 className="brand">
+      {/* Product bar: identity and account-level controls sit above the nav so
+          the sidebar stays purely "where can I go", never "who am I". */}
+      <header className="topbar">
+        <div className="brand">
           <img className="brand-mark" src="/logo.png" alt="" />
-          {t('app.name')}
-        </h2>
-        <p className="role-tag">{t(`role.${user.role}` as MessageKey)}</p>
-        {/* Menu visibility follows the permission matrix in ARCHITECTURE.md §1 */}
-        {isOwner && <NavLink to="/dashboard">📊 {t('nav.dashboard')}</NavLink>}
-        {(isOwner || isMod) && (
-          <>
-            {/* Portfolio view: every farm under this person's responsibility */}
-            <NavLink to="/farms">🌱 {t('nav.farms')}</NavLink>
-            <NavLink to="/tasks">🗂️ {t('nav.tasks')}</NavLink>
-            <NavLink to="/evaluations">⭐ {t('nav.evaluations')}</NavLink>
-          </>
-        )}
-        {isOwner && (
-          <>
-            {/* R5: accountant view of the per-farm financial ledger */}
-            <NavLink to="/finance">💰 {t('nav.finance')}</NavLink>
-          </>
-        )}
-        {user.role === 'worker' && (
-          <NavLink to={`/tasks`}>🗂️ {t('nav.myTasks')}</NavLink>
-        )}
-        {/* Open to every role: network experts sign in as ordinary users. */}
-        <NavLink to="/experts">🌍 {t('nav.experts')}</NavLink>
-        <LocaleSwitch />
-        <button className="logout" onClick={logout}>
-          {t('nav.logout', { name: user.name })}
-        </button>
-      </aside>
-      <main className="content">{children}</main>
+          <span className="brand-name">
+            <b>{t('app.name')}</b>
+            <small>{t('app.tagline')}</small>
+          </span>
+        </div>
+        <div className="topbar-actions">
+          <span className="pill amber">{t('app.demoData')}</span>
+          <LocaleSwitch />
+          <button className="logout" onClick={logout}>
+            {t('nav.logout', { name: user.name })}
+          </button>
+        </div>
+      </header>
+      <div className="layout">
+        <aside className="sidebar">
+          <p className="sidebar-label">{t('nav.workspace')}</p>
+          <p className="role-tag">{t(`role.${user.role}` as MessageKey)}</p>
+          {/* Menu visibility follows the permission matrix in ARCHITECTURE.md §1 */}
+          {isOwner && <NavLink to="/dashboard">📊 {t('nav.dashboard')}</NavLink>}
+          {(isOwner || isMod) && (
+            <>
+              {/* Portfolio view: every farm under this person's responsibility */}
+              <NavLink to="/farms">🌱 {t('nav.farms')}</NavLink>
+              <NavLink to="/tasks">🗂️ {t('nav.tasks')}</NavLink>
+              <NavLink to="/evaluations">⭐ {t('nav.evaluations')}</NavLink>
+            </>
+          )}
+          {isOwner && (
+            <>
+              {/* R5: accountant view of the per-farm financial ledger */}
+              <NavLink to="/finance">💰 {t('nav.finance')}</NavLink>
+            </>
+          )}
+          {user.role === 'worker' && (
+            <NavLink to={`/tasks`}>🗂️ {t('nav.myTasks')}</NavLink>
+          )}
+          {/* Open to every role: network experts sign in as ordinary users. */}
+          <NavLink to="/experts">🌍 {t('nav.experts')}</NavLink>
+        </aside>
+        <main className="content">{children}</main>
+      </div>
     </div>
   );
 }

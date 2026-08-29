@@ -32,6 +32,9 @@ function Person({ label, person }: { label: string; person: PublicUser | null })
   );
 }
 
+/** The task's happy-path lifecycle, rendered as a progress rail. */
+const LIFECYCLE = ['assigned', 'in_progress', 'submitted', 'approved'] as const;
+
 export default function TaskReport() {
   const { id = '' } = useParams();
   const { t, fmt } = useI18n();
@@ -64,7 +67,11 @@ export default function TaskReport() {
         )}
       </p>
 
-      <h1><bdi>{task.title}</bdi></h1>
+      <div className="pagehead">
+        <p className="eyebrow">{t('report.eyebrow')}</p>
+        <h1><bdi>{task.title}</bdi></h1>
+        <p>{t('report.subtitle')}</p>
+      </div>
       <p>
         <span className={`badge b-${task.status}`}>
           {t(`status.${task.status}` as MessageKey)}
@@ -79,7 +86,27 @@ export default function TaskReport() {
       </p>
       <p className="desc"><bdi>{task.description}</bdi></p>
 
-      <section>
+      <section className="panel">
+        <h2>{t('report.lifecycle')}</h2>
+        {/* A rejected task never reaches "approved", so the rail stops at the
+            furthest stage actually reached rather than assuming completion. */}
+        <div className="stages">
+          {LIFECYCLE.map((stage, i) => {
+            const reached = LIFECYCLE.indexOf(
+              task.status as (typeof LIFECYCLE)[number]
+            );
+            const done = reached >= 0 && i <= reached;
+            return (
+              <div key={stage} className={done ? 'stage done' : 'stage'}>
+                <b>{done ? '\u2713' : fmt.number(i + 1)}</b>
+                {t(`status.${stage}` as MessageKey)}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
         <h2>{t('report.people')}</h2>
         <div className="people">
           <Person label={t('report.reportedBy')} person={reporter} />
@@ -88,22 +115,20 @@ export default function TaskReport() {
         </div>
       </section>
 
-      <section>
+      <section className="panel">
         <h2>{t('report.milestones')}</h2>
-        <ol className="timeline">
+        <ol className="audit">
           {milestones.map((m) => (
             <li key={m.key}>
-              {/* Unknown milestone keys fall back to the raw key rather than
-                  to English prose, so a server addition is visibly untranslated
-                  instead of silently mixing languages. */}
-              <b>{t(`report.milestone.${m.key}` as MessageKey)}</b>{' '}
-              <span className="muted">
-                {t('report.milestoneBy', {
-                  when: fmt.dateTime(m.at),
-                  who: m.by,
-                })}
+              <time>{fmt.dateTime(m.at)}</time>
+              <span className="what">
+                {/* Unknown milestone keys fall back to the raw key rather than
+                    to English prose, so a server addition is visibly
+                    untranslated instead of silently mixing languages. */}
+                <b>{t(`report.milestone.${m.key}` as MessageKey)}</b>
+                <small>{t('report.responsible', { who: m.by })}</small>
+                {m.note && <span className="desc"><bdi>{m.note}</bdi></span>}
               </span>
-              {m.note && <div className="desc"><bdi>{m.note}</bdi></div>}
             </li>
           ))}
           {milestones.length === 0 && (
@@ -113,7 +138,7 @@ export default function TaskReport() {
       </section>
 
       {issue && (
-        <section>
+        <section className="panel">
           <h2>{t('report.issue')}</h2>
           <p>
             <b><bdi>{issue.title}</bdi></b>{' '}
@@ -128,22 +153,24 @@ export default function TaskReport() {
               })}
             </span>
           </p>
-          <ol className="timeline">
+          <ol className="audit">
             {issueEvents.map((e) => (
               <li key={e.id}>
-                <b>
-                  {t('farmDetail.transition', {
-                    from: t(`stage.${e.fromStage}` as MessageKey),
-                    to: t(`stage.${e.toStage}` as MessageKey),
-                  })}
-                </b>{' '}
-                <span className="muted">
-                  {t('farmDetail.transitionBy', {
-                    role: t(`role.${e.actorRole}` as MessageKey),
-                    when: fmt.dateTime(e.at),
-                  })}
+                <time>{fmt.dateTime(e.at)}</time>
+                <span className="what">
+                  <b>
+                    {t('farmDetail.transition', {
+                      from: t(`stage.${e.fromStage}` as MessageKey),
+                      to: t(`stage.${e.toStage}` as MessageKey),
+                    })}
+                  </b>
+                  <small>
+                    {t('report.responsible', {
+                      who: t(`role.${e.actorRole}` as MessageKey),
+                    })}
+                  </small>
+                  {e.note && <span className="desc"><bdi>{e.note}</bdi></span>}
                 </span>
-                {e.note && <div className="desc"><bdi>{e.note}</bdi></div>}
               </li>
             ))}
             {issueEvents.length === 0 && (
@@ -159,14 +186,14 @@ export default function TaskReport() {
       )}
 
       {task.reviewNote && (
-        <section>
+        <section className="panel">
           <h2>{t('report.verdict')}</h2>
           <p className="desc"><bdi>{task.reviewNote}</bdi></p>
         </section>
       )}
 
       {(task.beforePhotoUrl || task.afterPhotoUrl) && (
-        <section>
+        <section className="panel">
           <h2>{t('report.evidence')}</h2>
           <div className="photos">
             {task.beforePhotoUrl && (
@@ -185,7 +212,7 @@ export default function TaskReport() {
         </section>
       )}
 
-      <section>
+      <section className="panel">
         <h2>{t('report.conversation', { count: comments.length })}</h2>
         <ul className="thread">
           {comments.map((c) => (
