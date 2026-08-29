@@ -36,10 +36,6 @@ export const ar = {
   'nav.logout': 'تسجيل الخروج ({{name}})',
   'nav.workspace': 'مساحة عمل المالك',
 
-  // Environment marker in the product bar, so a screenshot of the demo is
-  // never mistaken for production data.
-  'app.demoData': 'بيانات تجريبية',
-
   // ------------------------------------------------------------------ generic
   'common.loading': 'جارٍ التحميل…',
   'common.cancel': 'إلغاء',

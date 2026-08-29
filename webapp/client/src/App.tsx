@@ -59,7 +59,6 @@ function Layout({ children }: { children: React.ReactNode }) {
           </span>
         </div>
         <div className="topbar-actions">
-          <span className="pill amber">{t('app.demoData')}</span>
           <LocaleSwitch />
           <button className="logout" onClick={logout}>
             {t('nav.logout', { name: tc(user.name) })}
