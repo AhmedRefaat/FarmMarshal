@@ -1,0 +1,99 @@
+name: Deploy FarmMarshal Web App to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build web application
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: webapp/client
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webapp/client/package-lock.json
+
+      - name: Install client dependencies
+        run: npm ci
+
+      - name: Build client for GitHub Pages
+        run: npm run build
+        env:
+          VITE_BASE: /FarmMarshal/
+
+      - name: Verify production output
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Current directory:"
+          pwd
+
+          echo "Production files:"
+          find dist -maxdepth 3 -type f -print
+
+          test -f dist/index.html
+
+          echo "Generated asset paths:"
+          grep -Eo '(src|href)="[^"]+"' dist/index.html || true
+
+          if grep -q '="/assets/' dist/index.html; then
+            echo "::error::The build contains root-relative /assets paths."
+            echo "::error::Expected asset paths under /FarmMarshal/assets/."
+            exit 1
+          fi
+
+          if ! grep -q '/FarmMarshal/assets/' dist/index.html; then
+            echo "::warning::No /FarmMarshal/assets/ reference was found."
+            echo "::warning::Inspect dist/index.html before deployment."
+          fi
+
+      - name: Add no-Jekyll marker
+        run: touch dist/.nojekyll
+
+      - name: Upload production build
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: webapp/client/dist
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
