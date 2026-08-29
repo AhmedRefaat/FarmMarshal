@@ -366,7 +366,7 @@ async fn task_report(State(state): App, Path(id): Path<String>, headers: HeaderM
     let (expense, income) = (sum("expense"), sum("income"));
     // A mixed-currency ledger cannot be summed; the demo is single-currency
     // and the first row decides the label.
-    let currency = costs.first().and_then(|c| c["currency"].as_str()).unwrap_or("EGP").to_string();
+    let currency = costs.first().and_then(|c| c["currency"].as_str()).unwrap_or("SAR").to_string();
 
     ok_json(json!({
         "task": task,

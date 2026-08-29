@@ -303,7 +303,7 @@ export const ar = {
   'expert.youAnswered': 'شاركت بتوصية',
   'expert.ask': 'اطرح حالتك على الشبكة',
   'expert.questionPlaceholder': 'اشرح الحالة للخبراء…',
-  'expert.bountyPlaceholder': 'قيمة المكافأة (بالجنيه)',
+  'expert.bountyPlaceholder': 'قيمة المكافأة (بالريال)',
   'expert.postCase': 'نشر الحالة',
   'expert.selectCase': 'اختر حالة لعرض التوصيات الخاصة بها.',
   'expert.case': 'الحالة',

@@ -136,7 +136,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         net: income - expense,
         // A mixed-currency ledger cannot be summed; the demo is single-currency
         // and the first row decides the label.
-        currency: costs[0]?.currency ?? 'EGP',
+        currency: costs[0]?.currency ?? 'SAR',
       },
       // Lifecycle stamps flattened into one ordered list for the timeline UI.
       // `by` is a display name (never an internal id) so the report reads as a

@@ -56,16 +56,16 @@ const ENTRY_CATEGORIES = new Set([
 // the canonical farm id so the demo ledger belongs to a farm that real
 // memberships actually reference.
 const entries: FinanceEntry[] = [
-  { id: 'fe-1', farmId: 'f-1', type: 'expense', category: 'seeds', amount: 4200, currency: 'EGP', note: 'Wheat seed batch', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
-  { id: 'fe-2', farmId: 'f-1', type: 'expense', category: 'labor', amount: 1500, currency: 'EGP', note: 'Weeding crew day rate', createdById: 'u-mod', createdAt: Date.now() - 2 * 86400e3 },
-  { id: 'fe-3', farmId: 'f-1', type: 'income', category: 'harvest_sale', amount: 18000, currency: 'EGP', note: 'Tomato sale to market', createdById: 'u-owner', createdAt: Date.now() - 1 * 86400e3 },
-  { id: 'fe-4', farmId: 'f-2', type: 'expense', category: 'fertilizer', amount: 9800, currency: 'EGP', note: 'Foliar micronutrients — spring flush', createdById: 'u-mod', createdAt: Date.now() - 20 * 86400e3 },
-  { id: 'fe-5', farmId: 'f-2', type: 'income', category: 'harvest_sale', amount: 64000, currency: 'EGP', note: 'Navel orange first pick', createdById: 'u-owner', createdAt: Date.now() - 6 * 86400e3 },
-  { id: 'fe-6', farmId: 'f-3', type: 'expense', category: 'equipment', amount: 15500, currency: 'EGP', note: 'Windbreak posts and netting', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
+  { id: 'fe-1', farmId: 'f-1', type: 'expense', category: 'seeds', amount: 4200, currency: 'SAR', note: 'Wheat seed batch', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
+  { id: 'fe-2', farmId: 'f-1', type: 'expense', category: 'labor', amount: 1500, currency: 'SAR', note: 'Weeding crew day rate', createdById: 'u-mod', createdAt: Date.now() - 2 * 86400e3 },
+  { id: 'fe-3', farmId: 'f-1', type: 'income', category: 'harvest_sale', amount: 18000, currency: 'SAR', note: 'Tomato sale to market', createdById: 'u-owner', createdAt: Date.now() - 1 * 86400e3 },
+  { id: 'fe-4', farmId: 'f-2', type: 'expense', category: 'fertilizer', amount: 9800, currency: 'SAR', note: 'Foliar micronutrients — spring flush', createdById: 'u-mod', createdAt: Date.now() - 20 * 86400e3 },
+  { id: 'fe-5', farmId: 'f-2', type: 'income', category: 'harvest_sale', amount: 64000, currency: 'SAR', note: 'Navel orange first pick', createdById: 'u-owner', createdAt: Date.now() - 6 * 86400e3 },
+  { id: 'fe-6', farmId: 'f-3', type: 'expense', category: 'equipment', amount: 15500, currency: 'SAR', note: 'Windbreak posts and netting', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
   // Task-linked spend: what the corrective action itself cost.
-  { id: 'fe-7', farmId: 'f-1', type: 'expense', category: 'equipment', amount: 2750, currency: 'EGP', note: 'Replacement drip line and couplings', taskId: 't-1', createdById: 'u-mod', createdAt: Date.now() - 3 * 86400e3 },
-  { id: 'fe-8', farmId: 'f-1', type: 'expense', category: 'labor', amount: 900, currency: 'EGP', note: 'Repair crew — half day', taskId: 't-1', createdById: 'u-mod', createdAt: Date.now() - 3 * 86400e3 },
-  { id: 'fe-9', farmId: 'f-2', type: 'expense', category: 'labor', amount: 1800, currency: 'EGP', note: 'Emitter flush and pressure test', taskId: 't-4', createdById: 'u-mod', createdAt: Date.now() - 9 * 86400e3 },
+  { id: 'fe-7', farmId: 'f-1', type: 'expense', category: 'equipment', amount: 2750, currency: 'SAR', note: 'Replacement drip line and couplings', taskId: 't-1', createdById: 'u-mod', createdAt: Date.now() - 3 * 86400e3 },
+  { id: 'fe-8', farmId: 'f-1', type: 'expense', category: 'labor', amount: 900, currency: 'SAR', note: 'Repair crew — half day', taskId: 't-1', createdById: 'u-mod', createdAt: Date.now() - 3 * 86400e3 },
+  { id: 'fe-9', farmId: 'f-2', type: 'expense', category: 'labor', amount: 1800, currency: 'SAR', note: 'Emitter flush and pressure test', taskId: 't-4', createdById: 'u-mod', createdAt: Date.now() - 9 * 86400e3 },
 ];
 
 /**
@@ -198,7 +198,7 @@ export default async function farmFinanceRoutes(app: FastifyInstance) {
       type: b.type,
       category: b.category,
       amount: b.amount,
-      currency: b.currency ?? 'EGP',
+      currency: b.currency ?? 'SAR',
       note: b.note,
       taskId: typeof b.taskId === 'string' ? b.taskId : undefined,
       createdById: actor.userId,

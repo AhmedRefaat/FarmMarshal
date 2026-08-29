@@ -365,7 +365,7 @@ export interface ValveCommand {
 export interface WaterTariff {
   farmId: string;
   effectiveFrom: number;
-  currency: 'EGP';
+  currency: 'SAR';
   /** [{ upToM3: number|null, pricePerM3: number }] — null = infinity. */
   tiers: Array<{ upToM3: number | null; pricePerM3: number }>;
 }

@@ -161,8 +161,8 @@ audit trails are Gregorian. Every formatter MUST pin `…-u-ca-gregory-nu-latn`;
 
 | Currency | Arabic display | Formatter |
 |---|---|---|
-| EGP | `ج.م` | `Intl.NumberFormat('ar-EG-u-nu-latn', { style:'currency', currency:'EGP' })` |
-| SAR / AED | `ر.س` / `د.إ` | same shape, currency swapped |
+| SAR | `ر.س` | `Intl.NumberFormat('ar-EG-u-nu-latn', { style:'currency', currency:'SAR' })` |
+| EGP / AED | `ج.م` / `د.إ` | same shape, currency swapped |
 
 Amount and symbol stay adjacent and are wrapped in a bidi isolate (§5.3) so a trailing symbol
 does not jump across a sentence boundary.

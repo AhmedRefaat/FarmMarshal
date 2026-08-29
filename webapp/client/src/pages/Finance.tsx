@@ -121,7 +121,7 @@ export default function Finance() {
       </div>
 
       {/* KPI cards from /finances/summary — currency is formatted by Intl so
-          Arabic gets ج.م with Western digits rather than a bare number. */}
+          Arabic gets ر.س with Western digits rather than a bare number. */}
       {summary && (
         <div className="kpis">
           <div className="kpi red">

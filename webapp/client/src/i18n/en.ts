@@ -280,7 +280,7 @@ export const en = {
   'expert.youAnswered': 'You answered',
   'expert.ask': 'Ask the network',
   'expert.questionPlaceholder': 'Describe the case for the network…',
-  'expert.bountyPlaceholder': 'Bounty (EGP)',
+  'expert.bountyPlaceholder': 'Bounty (SAR)',
   'expert.postCase': 'Post the case',
   'expert.selectCase': 'Select a case to see its recommendations.',
   'expert.case': 'Case',

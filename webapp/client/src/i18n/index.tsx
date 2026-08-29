@@ -114,7 +114,7 @@ export interface Formatters {
   time(ms: number): string;
   /** Grouped number. */
   number(n: number): string;
-  /** Currency with the locale's symbol (`ج.م` for EGP). */
+  /** Currency with the locale's symbol (`ر.س` for SAR). */
   currency(n: number, code?: string): string;
 }
 
@@ -187,7 +187,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       dateTime: (ms) => dateTime.format(ms),
       time: (ms) => time.format(ms),
       number: (n) => number.format(n),
-      currency: (n, code = 'EGP') => {
+      currency: (n, code = 'SAR') => {
         let f = currencyCache.get(code);
         if (!f) {
           f = new Intl.NumberFormat(tag, {

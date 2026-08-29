@@ -149,7 +149,7 @@ pub fn seed() -> Db {
         db.schedules.push(serde_json::json!({
             "id": id, "ledger": true, "farmId": "f-1", "taskId": "t-1",
             "type": "expense", "category": cat, "amount": amount,
-            "currency": "EGP", "note": note,
+            "currency": "SAR", "note": note,
             "createdBy": "u-mod", "createdAt": now - 10_800_000
         }));
     }

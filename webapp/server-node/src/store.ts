@@ -630,7 +630,7 @@ export const academyStore = {
   // P2 water devices on the demo farm.
   db2.devices.set('dev-meter-1', { id: 'dev-meter-1', farmId: 'f-1', type: 'water_meter', vendor: 'GenericPulse', label: 'Main line meter', status: 'online', lastSeenAt: now, createdAt: now });
   db2.devices.set('dev-valve-1', { id: 'dev-valve-1', farmId: 'f-1', type: 'valve', vendor: 'GenericRelay', label: 'Valve C2', status: 'online', lastSeenAt: now, metadata: { normallyOpen: true }, createdAt: now });
-  db2.tariffs.set('f-1', { farmId: 'f-1', effectiveFrom: now - 86400_000, currency: 'EGP', tiers: [ { upToM3: 100, pricePerM3: 2.5 }, { upToM3: null, pricePerM3: 4.0 } ] });
+  db2.tariffs.set('f-1', { farmId: 'f-1', effectiveFrom: now - 86400_000, currency: 'SAR', tiers: [ { upToM3: 100, pricePerM3: 2.5 }, { upToM3: null, pricePerM3: 4.0 } ] });
   // 48h of hourly telemetry: steady day flow + suspicious NIGHT flow (leak fixture).
   for (let h = 47; h >= 0; h--) {
     const at = now - h * 3600_000;
