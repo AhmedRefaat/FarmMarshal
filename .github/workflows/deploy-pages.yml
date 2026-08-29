@@ -46,6 +46,8 @@ jobs:
       - name: Build client for GitHub Pages
         run: npm run build
         env:
+          # Pages cannot run the API; replay the recorded fixture instead.
+          VITE_DEMO_MODE: '1'
           VITE_BASE: /FarmMarshal/
 
       - name: Verify production output
@@ -77,6 +79,10 @@ jobs:
 
       - name: Add no-Jekyll marker
         run: touch dist/.nojekyll
+
+      # Pages has no SPA rewrite, so deep links must be served the app itself.
+      - name: Add SPA fallback
+        run: cp dist/index.html dist/404.html
 
       - name: Upload production build
         uses: actions/upload-pages-artifact@v4
