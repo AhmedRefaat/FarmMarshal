@@ -1,4 +1,4 @@
-# Master Repository Audit — AgriTasks Platform
+# Master Repository Audit — FarmMarshal Platform
 
 **Audit date:** 2026-08-26
 **Scope:** Entire repository — `docs/`, `specs/`, `src/`, `mobile-app/`, `webapp/client/`, `webapp/server-node/`, `webapp/server-rust/`

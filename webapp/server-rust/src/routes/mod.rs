@@ -129,6 +129,7 @@ pub fn router(state: DbState) -> Router {
         .route("/google/auth/exchange", any(google_unsupported))
         .route("/tasks", get(tasks_list).post(create_task))
         .route("/tasks/:id", get(get_task))
+        .route("/tasks/:id/report", get(task_report))
         .route("/tasks/:id/status", axum::routing::patch(task_status))
         .route("/tasks/:id/photos", post(upload_photo))
         .route("/tasks/:id/comments", get(list_comments).post(post_comment))
@@ -173,11 +174,14 @@ pub fn router(state: DbState) -> Router {
         .route("/v2/videos/:id/complete", post(complete_video_rt))
         .route("/v2/videos/:id/annotations", post(annotate).get(list_annotations_rt))
         .route("/v2/schedules", post(new_schedule).get(list_schedules_rt))
+        .route("/v2/experts", get(list_experts))
+        .route("/v2/experts/me", get(my_expert_card))
         .route("/v2/experts/apply", post(expert_apply))
         .route("/v2/experts/me/documents", post(expert_docs))
         .route("/v2/admin/verifications", get(verifications_queue))
         .route("/v2/admin/verifications/:id", axum::routing::patch(verify_expert))
-        .route("/v2/consultations", post(post_consultation))
+        .route("/v2/consultations", post(post_consultation).get(list_consultations))
+        .route("/v2/consultations/:id", get(consultation_detail))
         .route("/v2/consultations/:id/responses", post(respond_consultation))
         .route("/v2/consultations/:id/choose", axum::routing::patch(choose_response_rt))
         .route("/v2/consultations/:id/rate", post(rate_consultation))
@@ -262,15 +266,36 @@ async fn register(State(state): App, Json(body): Json<Value>) -> Response {
     created(json!({ "token": auth::issue_token(&id, &role), "user": user }))
 }
 
+/// SEC — tenant scope for the directory: the caller plus everyone who shares at
+/// least one farm with them. Platform `admin` is exempt because role
+/// administration operates across tenants by definition.
+fn visible_user_ids(db: &Db, user_id: &str) -> std::collections::HashSet<String> {
+    let farms: std::collections::HashSet<&str> = db.farm_members.iter()
+        .filter(|m| m.user_id == user_id).map(|m| m.farm_id.as_str()).collect();
+    let mut ids: std::collections::HashSet<String> = std::collections::HashSet::from([user_id.to_string()]);
+    for m in db.farm_members.iter().filter(|m| farms.contains(m.farm_id.as_str())) {
+        ids.insert(m.user_id.clone());
+    }
+    ids
+}
+
 async fn list_users(State(state): App, headers: HeaderMap) -> Response {
-    if let Err(e) = must_auth(&headers) { return e; }
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
     let db = db_lock!(state);
-    ok_json(serde_json::to_value(db.users.values().collect::<Vec<_>>()).unwrap())
+    if session.role == "admin" {
+        return ok_json(serde_json::to_value(db.users.values().collect::<Vec<_>>()).unwrap());
+    }
+    let visible = visible_user_ids(&db, &session.user_id);
+    ok_json(serde_json::to_value(db.users.values().filter(|u| visible.contains(&u.id)).collect::<Vec<_>>()).unwrap())
 }
 
 async fn user_stats(State(state): App, Path(id): Path<String>, headers: HeaderMap) -> Response {
-    if let Err(e) = must_auth(&headers) { return e; }
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
     let db = db_lock!(state);
+    // Out-of-tenant reads are indistinguishable from "no such user".
+    if session.role != "admin" && !visible_user_ids(&db, &session.user_id).contains(&id) {
+        return err(StatusCode::NOT_FOUND, "User not found");
+    }
     let rs: Vec<&Rating> = db.ratings.iter().filter(|r| r.ratee_id == id).collect();
     let count = rs.len();
     let avg = if count == 0 { 0.0 } else { (rs.iter().map(|r| r.stars as f64).sum::<f64>() / count as f64 * 10.0).round() / 10.0 };
@@ -292,6 +317,55 @@ async fn get_task(State(state): App, Path(id): Path<String>, headers: HeaderMap)
     if let Err(e) = must_auth(&headers) { return e; }
     db_lock!(state).tasks.get(&id).map(|t| ok_json(serde_json::to_value(t).unwrap()))
         .unwrap_or_else(|| err(StatusCode::NOT_FOUND, "Task not found"))
+}
+
+/// Full audit report for ONE task — everything that happened to it from the
+/// moment it was reported until it was solved, in a single response so the
+/// owner/moderator does not have to stitch four endpoints together.
+/// Mirror of GET /tasks/:id/report in routes/tasks.ts.
+async fn task_report(State(state): App, Path(id): Path<String>, headers: HeaderMap) -> Response {
+    if let Err(e) = must_auth(&headers) { return e; }
+    let db = db_lock!(state);
+    let Some(task) = db.tasks.get(&id) else { return err(StatusCode::NOT_FOUND, "Task not found") };
+    // Identity fields safe to show inside a report — never the credential seam.
+    let public_user = |uid: &str| -> Value {
+        match db.users.get(uid) {
+            Some(u) => json!({ "id": u.id, "name": u.name, "role": u.role }),
+            None => Value::Null,
+        }
+    };
+    let name_of = |uid: &str| db.users.get(uid).map(|u| u.name.clone()).unwrap_or_else(|| uid.to_string());
+    // The issue that this task implements, if the workflow created one.
+    let issue = db.issues.iter().find(|i| i.task_id.as_deref() == Some(task.id.as_str()));
+    let mut comments: Vec<&Comment> = db.comments.iter().filter(|c| c.task_id == id).collect();
+    comments.sort_by_key(|c| c.created_at);
+
+    // Lifecycle stamps flattened into one ordered list for the timeline UI.
+    // `by` is a display name (never an internal id) so the report reads as a
+    // narrative without the client needing a second lookup.
+    let stamps: [(&str, Option<u64>, String, Option<String>); 4] = [
+        ("created", Some(task.created_at), name_of(&task.assignee_id), None),
+        ("started", task.started_at, name_of(&task.worker_id), None),
+        ("submitted", task.submitted_at, name_of(&task.worker_id), None),
+        ("reviewed", task.reviewed_at, name_of(&task.assignee_id), task.review_note.clone()),
+    ];
+    let milestones: Vec<Value> = stamps.iter().filter_map(|(key, at, by, note)| {
+        at.map(|at| { let mut v = json!({ "key": key, "at": at, "by": by }); if let Some(n) = note { v["note"] = json!(n); } v })
+    }).collect();
+
+    ok_json(json!({
+        "task": task,
+        "farm": issue.and_then(|i| db.farms.get(&i.farm_id)).map(|f| serde_json::to_value(f).unwrap()).unwrap_or(Value::Null),
+        // "reporter" is whoever opened the work: the issue author when the task
+        // came out of the 7-stage workflow, otherwise the assigning moderator.
+        "reporter": public_user(issue.map(|i| i.created_by.as_str()).unwrap_or(task.assignee_id.as_str())),
+        "assignee": public_user(&task.assignee_id),
+        "worker": public_user(&task.worker_id),
+        "issue": issue.map(|i| serde_json::to_value(i).unwrap()).unwrap_or(Value::Null),
+        "issueEvents": issue.map(|i| db.issue_events.iter().filter(|e| e.issue_id == i.id).collect::<Vec<_>>()).unwrap_or_default(),
+        "comments": comments,
+        "milestones": milestones,
+    }))
 }
 
 async fn create_task(State(state): App, headers: HeaderMap, Json(b): Json<Value>) -> Response {

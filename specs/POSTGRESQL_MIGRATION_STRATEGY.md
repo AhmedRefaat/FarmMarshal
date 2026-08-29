@@ -1,4 +1,4 @@
-# PostgreSQL Migration Strategy — AgriTasks
+# PostgreSQL Migration Strategy — FarmMarshal
 
 **Document type:** Design and planning. **No migration was created or executed. No database was contacted. No tooling was installed.**
 **Date:** 2026-08-27
@@ -69,8 +69,8 @@ substitute `sqlx migrate` and this section is rewritten.
 ### 2.2 Rules of use
 
 1. **One owner.** Only the canonical backend runs migrations. Never both.
-2. **Migrations run as `agritasks_owner`; the application connects as
-   `agritasks_app`.** Separate credentials. This is what makes
+2. **Migrations run as `farmmarshal_owner`; the application connects as
+   `farmmarshal_app`.** Separate credentials. This is what makes
    `FORCE ROW LEVEL SECURITY` meaningful — see the security model §4.2.
 3. **Forward-only in production.** See §2.4.
 4. **Each migration is transactional.** Exceptions — `CREATE INDEX CONCURRENTLY`
@@ -209,7 +209,7 @@ Tables: `farms`, `farm_members`, `farm_member_invitations`, `plots`, `areas`,
 |---|---|---|
 | 2.1 | Tenancy tables with composite FK `(organization_id, farm_id)` | Cross-org insert rejected **by the database** |
 | 2.2 | Workflow tables, `NOT NULL` state + `CHECK` matching the TS unions | Union/constraint parity test passes |
-| 2.3 | Append-only `task_events`, `issue_events` | `UPDATE`/`DELETE` fails as `agritasks_app` |
+| 2.3 | Append-only `task_events`, `issue_events` | `UPDATE`/`DELETE` fails as `farmmarshal_app` |
 | 2.4 | `version` columns + optimistic concurrency | Concurrent transition test yields one `409` |
 | 2.5 | RLS across all farm-scoped tables | All 13 isolation tests pass per table |
 | 2.6 | Membership management API (`BL-17`) | Create/change/revoke, each audited |
@@ -245,7 +245,7 @@ Tables: `devices`, `device_credentials`, `telemetry` (partitioned),
 |---|---|---|
 | 4.1 | Partitioned `telemetry`; automated partition creation | Future partitions exist; a missing one alerts |
 | 4.2 | Per-device credentials, rotatable | Revoked device rejected at ingest |
-| 4.3 | Ingest worker with `agritasks_ingest` role | Worker cannot read `messages` — asserted |
+| 4.3 | Ingest worker with `farmmarshal_ingest` role | Worker cannot read `messages` — asserted |
 | 4.4 | Idempotent ingest | Replayed batch inserts no duplicates |
 | 4.5 | Retention by partition drop | Retention test passes |
 | 4.6 | `valve_commands` idempotency + audit | Replayed command actuates once |
@@ -401,10 +401,10 @@ correct answer then is still not dual-write, but a maintenance window.
 1. Announce a maintenance window (demo scale: minutes).
 2. Stop the application. **No writes accepted.**
 3. Export, validate, reconcile (§4.1–§4.5).
-4. Run migrations as `agritasks_owner`.
+4. Run migrations as `farmmarshal_owner`.
 5. Import as a dedicated loader role. Verify counts and the audit chain seed.
 6. Start the application configured for PostgreSQL, connecting as
-   `agritasks_app`.
+   `farmmarshal_app`.
 7. Smoke-test the authorised path, the cross-tenant denial, and one write.
 8. **Verify RLS is active** — a `SELECT` with no context must fail.
 9. Keep the export artefact for the retention period.
@@ -477,7 +477,7 @@ depending on `seed()`.
 
 **`0001_foundation`** — and deliberately not more.
 
-Contents: create the `agritasks_*` roles; `REVOKE ALL ON SCHEMA public FROM
+Contents: create the `farmmarshal_*` roles; `REVOKE ALL ON SCHEMA public FROM
 PUBLIC`; create the shared `set_updated_at()` trigger function and the audit-hash
 helper; create the migration-history table (tool-owned). **No business table, no
 tenant data, nothing product-specific.**

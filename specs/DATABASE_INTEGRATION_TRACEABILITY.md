@@ -1,4 +1,4 @@
-# AgriTasks — Database Integration Traceability
+# FarmMarshal — Database Integration Traceability
 
 **Audit date:** 2026-08-26
 **Editorial review date:** 2026-08-27 — see `specs/AUDIT_DOCUMENT_REVIEW_LOG.md`
@@ -466,7 +466,7 @@ sequenceDiagram
     participant N as server-node
     participant AZ as authz.ts
     participant MEM as process memory
-    W->>W: token = localStorage['agritasks_token']
+    W->>W: token = localStorage['farmmarshal_token']
     W->>V: GET /api/finances
     V->>N: GET /finances
     N->>AZ: buildActorContext(userId)

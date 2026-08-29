@@ -11,9 +11,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { useErrorMessage, useI18n } from '../i18n';
+import type { MessageKey } from '../i18n';
 import type { Task, User } from '../types';
 
 export default function Dashboard() {
+  const { t, fmt } = useI18n();
+  const describeError = useErrorMessage();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [people, setPeople] = useState<(User & { avgStars?: number })[]>([]);
   const [error, setError] = useState('');
@@ -32,8 +36,8 @@ export default function Dashboard() {
         );
         setPeople(withStars);
       })
-      .catch((e) => setError(e.message));
-  }, []);
+      .catch((e) => setError(describeError(e)));
+  }, [describeError]);
 
   if (error) return <p className="error">{error}</p>;
 
@@ -43,45 +47,55 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1>Land Overview</h1>
+      <h1>{t('dashboard.title')}</h1>
 
-      {/* KPI row: the owner's core questions */}
+      {/* KPI row: the owner's core questions. Captions are noun phrases, not
+          sentences, because the count renders as a separate visual element. */}
       <div className="kpis">
         <div className="kpi red">
-          <b>{count('assigned', 'rejected')}</b> problems open
+          <b>{fmt.number(count('assigned', 'rejected'))}</b>{' '}
+          {t('dashboard.problems')}
         </div>
         <div className="kpi orange">
-          <b>{count('in_progress', 'submitted')}</b> activities ongoing
+          <b>{fmt.number(count('in_progress', 'submitted'))}</b>{' '}
+          {t('dashboard.activities')}
         </div>
         <div className="kpi green">
-          <b>{count('approved')}</b> solutions completed
+          <b>{fmt.number(count('approved'))}</b> {t('dashboard.solutions')}
         </div>
       </div>
 
       <section>
-        <h2>Latest activity</h2>
+        <h2>{t('dashboard.latestActivity')}</h2>
         {/* Five most recent tasks link into their detail pages */}
         <ul className="feed">
-          {tasks.slice(0, 5).map((t) => (
-            <li key={t.id}>
-              <Link to={`/tasks/${t.id}`}>
-                [{t.status}] {t.title}
+          {tasks.slice(0, 5).map((t2) => (
+            <li key={t2.id}>
+              <Link to={`/tasks/${t2.id}`}>
+                <span className={`badge b-${t2.status}`}>
+                  {t(`status.${t2.status}` as MessageKey)}
+                </span>{' '}
+                <bdi>{t2.title}</bdi>
               </Link>
             </li>
           ))}
-          {tasks.length === 0 && <li>No activity yet.</li>}
+          {tasks.length === 0 && <li>{t('dashboard.noActivity')}</li>}
         </ul>
       </section>
 
       <section>
-        <h2>Team quality</h2>
+        <h2>{t('dashboard.teamQuality')}</h2>
         <ul className="feed">
           {/* Moderators & workers only — owners aren't rated by anyone */}
           {people
             .filter((p) => p.role !== 'owner')
             .map((p) => (
               <li key={p.id}>
-                {p.name} ({p.role}) — ⭐ {p.avgStars ?? '—'}
+                <bdi>{p.name}</bdi>{' '}
+                <span className="role-tag">
+                  {t(`role.${p.role}` as MessageKey)}
+                </span>{' '}
+                — ⭐ {p.avgStars ? fmt.number(p.avgStars) : t('common.none')}
               </li>
             ))}
         </ul>

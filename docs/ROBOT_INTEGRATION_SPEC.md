@@ -2,13 +2,13 @@
 
 **Version:** 1.0 · **Date:** 2026-08-25 · **Status:** CONTRACT-FOR-VENDORS (robot itself is still in design phase)
 
-> This document is the **contract any greenhouse robot must satisfy** to integrate with AgriTasks.
+> This document is the **contract any greenhouse robot must satisfy** to integrate with FarmMarshal.
 > It is written so that (a) our own team can build a robot *simulator* today, and (b) any vendor
 > can be evaluated against a concrete checklist ("conformance certification") before purchase.
 
 ---
 
-## 1. Position in AgriTasks architecture
+## 1. Position in FarmMarshal architecture
 
 ```
 ┌─────────────────────────────┐   MQTT (control/status)    ┌──────────────────────────┐
@@ -132,7 +132,7 @@ Provided by us as a **robot simulator + scenario runner** (built in P4 before ha
 6. Clock-skew rejection test.
 7. Full happy path: schedule → dispatch → record sim → upload → HLS ready → expert notified < 5 min.
 
-A vendor passing all 7 = "AgriTasks Certified". Until real hardware exists, the simulator runs
+A vendor passing all 7 = "FarmMarshal Certified". Until real hardware exists, the simulator runs
 these scenarios in CI continuously.
 
 ## 8. Usability fallback (no-geek rule)

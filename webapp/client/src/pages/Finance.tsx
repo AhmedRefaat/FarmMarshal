@@ -9,6 +9,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
+import { useErrorMessage, useI18n } from '../i18n';
+import type { MessageKey } from '../i18n';
+
+/** Ledger categories — the value is the wire enum, the label comes from the
+ *  catalogue so nothing here is ever shown to a user verbatim. */
+const CATEGORIES = [
+  'seeds',
+  'fertilizer',
+  'labor',
+  'fuel',
+  'equipment',
+  'harvest_sale',
+  'other',
+] as const;
 
 /** Farm row from GET /farms. */
 interface Farm {
@@ -28,6 +42,8 @@ interface Entry {
 }
 
 export default function Finance() {
+  const { t, fmt } = useI18n();
+  const describeError = useErrorMessage();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState(''); // '' = all farms
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -48,13 +64,13 @@ export default function Finance() {
       ]);
       setEntries(e as Entry[]);
       setSummary(s);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(describeError(err));
     }
   }
   useEffect(() => {
-    api.farms().then(setFarms).catch((e) => setError(e.message));
-  }, []);
+    api.farms().then(setFarms).catch((e) => setError(describeError(e)));
+  }, [describeError]);
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,8 +86,8 @@ export default function Finance() {
       });
       setForm({ ...form, amount: '', note: '' });
       await load();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(describeError(err));
     }
   }
 
@@ -79,7 +95,7 @@ export default function Finance() {
 
   return (
     <>
-      <h1>💰 Finance</h1>
+      <h1>💰 {t('finance.title')}</h1>
 
       {/* Farm scope selector — the accountant reviews per farm */}
       <div className="chips">
@@ -87,7 +103,7 @@ export default function Finance() {
           className={farmId === '' ? 'chip active' : 'chip'}
           onClick={() => setFarmId('')}
         >
-          All farms
+          {t('finance.allFarms')}
         </button>
         {farms.map((f) => (
           <button
@@ -95,22 +111,25 @@ export default function Finance() {
             className={farmId === f.id ? 'chip active' : 'chip'}
             onClick={() => setFarmId(f.id)}
           >
-            {f.name}
+            <bdi>{f.name}</bdi>
           </button>
         ))}
       </div>
 
-      {/* KPI cards from /finances/summary */}
+      {/* KPI cards from /finances/summary — currency is formatted by Intl so
+          Arabic gets ج.م with Western digits rather than a bare number. */}
       {summary && (
         <div className="kpis">
           <div className="kpi red">
-            <b>{(summary.totalExpense ?? 0).toLocaleString()}</b> expenses
+            <b>{fmt.currency(summary.totalExpense ?? 0)}</b>{' '}
+            {t('finance.expenses')}
           </div>
           <div className="kpi green">
-            <b>{(summary.totalIncome ?? 0).toLocaleString()}</b> income
+            <b>{fmt.currency(summary.totalIncome ?? 0)}</b>{' '}
+            {t('finance.income')}
           </div>
           <div className="kpi orange">
-            <b>{(summary.net ?? 0).toLocaleString()}</b> net
+            <b>{fmt.currency(summary.net ?? 0)}</b> {t('finance.net')}
           </div>
         </div>
       )}
@@ -118,23 +137,25 @@ export default function Finance() {
       {/* Quick add-entry form */}
       <div className="row">
         <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
+          <option value="expense">{t('finance.typeExpense')}</option>
+          <option value="income">{t('finance.typeIncome')}</option>
         </select>
         <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-          {['seeds', 'fertilizer', 'labor', 'fuel', 'equipment', 'harvest_sale', 'other'].map((c) => (
-            <option key={c} value={c}>{c.replace('_', ' ')}</option>
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {t(`finance.category.${c}` as MessageKey)}
+            </option>
           ))}
         </select>
         <input
-          placeholder="Amount"
+          placeholder={t('finance.amountPlaceholder')}
           type="number"
           style={{ width: 110 }}
           value={form.amount}
           onChange={(e) => setForm({ ...form, amount: e.target.value })}
         />
         <input
-          placeholder="Note"
+          placeholder={t('finance.notePlaceholder')}
           value={form.note}
           onChange={(e) => setForm({ ...form, note: e.target.value })}
         />
@@ -143,24 +164,38 @@ export default function Finance() {
             <option key={f.id} value={f.id}>{f.name}</option>
           ))}
         </select>
-        <button className="green" onClick={addEntry}>Add</button>
+        <button className="green" onClick={addEntry}>{t('common.add')}</button>
       </div>
 
       {/* Ledger table */}
       <table className="table">
         <thead>
-          <tr><th>Date</th><th>Type</th><th>Category</th><th>Note</th><th>Amount</th></tr>
+          <tr>
+            <th>{t('common.date')}</th>
+            <th>{t('common.type')}</th>
+            <th>{t('common.category')}</th>
+            <th>{t('common.note')}</th>
+            <th>{t('common.amount')}</th>
+          </tr>
         </thead>
         <tbody>
           {entries.map((e) => (
             <tr key={e.id}>
-              <td>{new Date(e.createdAt).toLocaleDateString()}</td>
-              <td>{e.type === 'expense' ? '🔴 out' : '🟢 in'}</td>
-              <td>{e.category.replace('_', ' ')}</td>
-              <td>{e.note ?? '—'}</td>
+              <td>{fmt.date(e.createdAt)}</td>
+              <td>
+                {e.type === 'expense'
+                  ? `🔴 ${t('finance.out')}`
+                  : `🟢 ${t('finance.in')}`}
+              </td>
+              <td>{t(`finance.category.${e.category}` as MessageKey)}</td>
+              <td><bdi>{e.note ?? t('common.none')}</bdi></td>
               <td style={{ fontWeight: 700 }}>
-                {e.type === 'expense' ? '−' : '+'}
-                {e.amount.toLocaleString()} {e.currency}
+                {/* Sign + amount form one isolated run so the minus stays glued
+                    to its number when the row renders right-to-left. */}
+                <bdi>
+                  {e.type === 'expense' ? '−' : '+'}
+                  {fmt.currency(e.amount, e.currency)}
+                </bdi>
               </td>
             </tr>
           ))}

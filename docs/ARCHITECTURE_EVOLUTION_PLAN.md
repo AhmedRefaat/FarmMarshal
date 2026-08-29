@@ -1,4 +1,4 @@
-# AgriTasks — Architecture Evolution Plan (v2)
+# FarmMarshal — Architecture Evolution Plan (v2)
 
 **Version:** 1.0 · **Date:** 2026-08-25 · **Status:** PLANNED CHANGES (nothing implemented)
 
@@ -162,7 +162,20 @@ Cross-cutting: feature flags per farm, audit log table (admin-visible), OpenAPI 
   photo-diagnosis questions). BLE/local-network module for valve/meter pairing (native module
   escape hatch documented).
 - BLE/local-network module for valve/meter pairing (native module escape hatch documented).
-- Arabic-first RTL i18n across every screen; large-target UI kit alignment.
+- Arabic-first RTL i18n across every screen; large-target UI kit alignment. **→ P8, see §4.1.**
+
+### 4.1 Mobile status (as built, 2026-08-28)
+
+| Screen | State |
+|---|---|
+| Login, TaskList, TaskDetail, ManagerTasks, CreateTask, ReviewTask | ✅ shipped |
+| ChatScreen (F3 inbox → thread, media) | ✅ shipped |
+| IssueReportScreen (R2 stage-gated capture, ADR-022 evidence) | ✅ shipped |
+| FarmsScreen / FarmDetailScreen (portfolio, issue buckets, event timelines) | ✅ shipped |
+| TaskReportScreen (aggregate audit report) | ✅ shipped |
+| ExpertNetworkScreen / ConsultationDetailScreen (F6 marketplace) | ✅ shipped |
+| Water dashboard, Tree scan, Learner mode, persona switcher | 📋 planned |
+| Arabic/RTL localization of all of the above | 🔨 P8 in progress |
 
 ## 5. Web app changes
 
@@ -172,6 +185,13 @@ Cross-cutting: feature flags per farm, audit log table (admin-visible), OpenAPI 
 - Role-aware sidebar; expert gets inbox-centric home.
 - Academy pages: case publisher (pick closed issue → anonymize → publish), quiz builder,
   academic verification queue, learner progress overview.
+- **Bilingual Arabic/English shell**: `LocaleProvider` above the router, `dir` on `<html>`,
+  CSS logical properties throughout, locale switcher in the header and on Login (P8).
+
+### 5.1 Web status (as built, 2026-08-28)
+
+✅ `Login`, `Dashboard`, `TaskList`, `TaskDetail`, `TaskReport`, `Farms`, `FarmDetail`,
+`Finance`, `ExpertNetwork`, `Evaluations`. 📋 Admin, Water, Solar, Video Review, Trees, Academy.
 
 ## 6. Security additions
 
@@ -180,6 +200,9 @@ Cross-cutting: feature flags per farm, audit log table (admin-visible), OpenAPI 
 - Valve command endpoint requires step-up confirmation + full audit trail.
 - Translation provider key server-side only; PII minimal in prompts.
 - RBAC matrix unit-tested exhaustively (see test plan).
+- **Tenant-scoped people directory** (R16): `GET /users` and `GET /users/:id/stats` restricted
+  to the caller's farm co-members; `admin` exempt; out-of-tenant reads answer 404 rather than
+  403 so the endpoint cannot enumerate accounts. Both trails.
 
 ## 7. Changes to be applied to existing ARCHITECTURE.md docs
 
@@ -267,6 +290,12 @@ GET  /v2/learners/me/progress     attempts, scores, passed exams
 | ADR-020 | Learning cases freeze an ANONYMIZED snapshot at publish time; identity fields are omitted (not masked) — source changes can never leak into published cases | Implemented P7 (`src/community.ts`) |
 | ADR-022 | Universal evidence capture (owner mandate): photo/video capture is available EVERYWHERE a case or message needs proof — chat composer (📷), issue reporting flow (create→upload→advance-to-inspected in one call), task evidence. Server owns storage + gates (`/v2/evidence`, `/v2/chat/:id/media`, `/v2/issues/:id/advance-with-evidence`); clients only orchestrate capture | Implemented P1+ (mobile ChatScreen 📷, IssueReportScreen, Node endpoints; Rust parity pending) |
 | ADR-023 | Test strategy layers: unit fixtures (Node 57 / Rust 9 / client 2 / mobile 3) + HTTP route tests via `inject()` (no port binding; `NO_LISTEN=1`) + manual procedures T1–T12. Coverage measured via `vitest --coverage`; staged gates replace the hollow "100%" claim | Active — see TEST_COVERAGE_TRACEABILITY.md |
+| ADR-024 | People directory is tenant-scoped by **farm co-membership** derived from `farm_members`, not by a denormalized tenant column. `admin` is exempt; out-of-tenant `/users/:id/stats` answers 404 so the endpoint cannot enumerate accounts (extends ADR-018 to the user resource) | Implemented (R16, both trails) |
+| ADR-025 | **In-house i18n layer, no i18n library.** A ~150-line typed module per client provides catalogue lookup, `{{}}` interpolation, `Intl.PluralRules` selection and locale-pinned formatters. Rejected `react-i18next`/`i18n-js`: their value is the plugin ecosystem (backends, detectors, ICU parsing) we do not use, against a runtime and dependency-audit cost we do pay. The seam is a hook — swapping in a library later is a provider change, not a component rewrite | Accepted, P8 |
+| ADR-026 | **One country-neutral `ar` catalogue**, not `ar-EG` + `ar-SA`. Regional variance in this product is *formatting*, which `Intl` derives from the device region; splitting the catalogue would double the translation surface for a handful of words and guarantee drift between the copies. Register is simplified MSA (LOCALIZATION_SPEC §1) | Accepted, P8 |
+| ADR-027 | **All locales pin `-u-ca-gregory-nu-latn`.** `Intl` resolves `ar-SA` to the Umm al-Qura calendar and some Arabic locales to Arabic-Indic digits; farm operations, invoices, GPS and audit trails are Gregorian/Western-digit. A bare `toLocaleDateString('ar')` is therefore a defect, not a style choice | Accepted, P8 |
+| ADR-028 | **RTL via CSS logical properties** (`margin-inline-*`, `text-align: start`), not a mirrored stylesheet. One stylesheet serves both directions; a duplicated RTL sheet drifts the first time someone edits only one copy. On mobile the equivalent is `I18nManager` + `textAlign:'start'`, with direction consumed from context rather than the mutable `I18nManager.isRTL` global | Accepted, P8 |
+| ADR-029 | **API stays language-neutral.** Errors carry a machine-readable code + developer-facing English string; clients map status → localized copy and show raw server text only in dev builds. Keeps internal messages out of the product UI (a security property as much as a localization one) and avoids a second translation surface on the server | Accepted, P8 |
 ## 10.1 Implementation status map (as built)
 
 | Module file | Implements | Key exports |
@@ -378,7 +407,7 @@ OTA updates or the team's existing RN investment (see TECH_COMPARISON_STUDY §A)
 
 Where Rust DOES belong on mobile: **shared core logic compiled as a library via FFI**
 (UniFFI generates Kotlin/Swift bindings) — e.g., the leak-detection math running on-device, or
-offline sync engines. Recommendation: keep React Native for all AgriTasks UI; consider a Rust
+offline sync engines. Recommendation: keep React Native for all FarmMarshal UI; consider a Rust
 FFI module ONLY if on-device computation ever becomes a bottleneck.
 
 ## 10. Hardware Abstraction Layer (HAL) — vendor-neutral device design

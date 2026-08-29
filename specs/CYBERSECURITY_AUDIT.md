@@ -1,4 +1,4 @@
-# AgriTasks — Cybersecurity Audit
+# FarmMarshal — Cybersecurity Audit
 
 **Audit date:** 2026-08-26
 **Editorial review date:** 2026-08-27 (see `specs/AUDIT_DOCUMENT_REVIEW_LOG.md`)
@@ -36,7 +36,7 @@ All four audit documents use exactly these `Status` values.
 
 ## 1. Executive summary
 
-AgriTasks is a farm-management platform with two hand-written backends (Node/Fastify
+FarmMarshal is a farm-management platform with two hand-written backends (Node/Fastify
 and Rust/Axum), a React web client, and an Expo/React Native mobile app. A prior
 remediation wave (documented in `specs/IMPLEMENTATION_REPORT.md`) closed four
 Critical and five High findings **in the Node backend only**.
@@ -149,7 +149,7 @@ file, schema, or migration was modified. No service was exposed.
 ## 5. Repository security overview
 
 ```
-AgriTasks
+FarmMarshal
 ├── mobile-app/          Expo SDK 57, RN 0.86.2 — REST + a live Firestore channel
 ├── webapp/client/       React 18.3.1 + Vite 5.4.10 — REST only
 ├── webapp/server-node/  Fastify 5 — the de-facto canonical backend

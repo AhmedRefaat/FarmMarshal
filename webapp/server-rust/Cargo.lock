@@ -3,25 +3,6 @@
 version = 4
 
 [[package]]
-name = "agritasks-server-rust"
-version = "1.0.0"
-dependencies = [
- "axum",
- "base64",
- "futures-util",
- "hmac",
- "password-hash",
- "rand_core",
- "scrypt",
- "serde",
- "serde_json",
- "sha2",
- "tokio",
- "tower-http",
- "uuid",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -211,6 +192,25 @@ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
  "windows-sys",
+]
+
+[[package]]
+name = "farmmarshal-server-rust"
+version = "1.0.0"
+dependencies = [
+ "axum",
+ "base64",
+ "futures-util",
+ "hmac",
+ "password-hash",
+ "rand_core",
+ "scrypt",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tower-http",
+ "uuid",
 ]
 
 [[package]]

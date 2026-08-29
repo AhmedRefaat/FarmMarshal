@@ -1,4 +1,4 @@
-# AgriTasks WebApp — Complete Architecture Document
+# FarmMarshal WebApp — Complete Architecture Document
 
 > ⚠️ **SUPERSEDED SECTIONS NOTICE (2026-08-25):** the Roles table in §1 below reflects the
 > ORIGINAL v1 model. The AUTHORITATIVE role/persona model (admin, learner, crowd_expert,
@@ -7,7 +7,7 @@
 > This document is retained for the legacy REST contract history; all NEW work must
 > follow REQUIREMENTS.md as the single source of truth.
 
-**AgriTasks WebApp** is the land-owner's control tower: a web dashboard where the
+**FarmMarshal WebApp** is the land-owner's control tower: a web dashboard where the
 **Land Owner** monitors every problem, solution, and activity happening on his land,
 and **evaluates** (rates) both his moderators and workers. The same REST API also
 serves the mobile app, making this server the single source of truth.
@@ -46,7 +46,7 @@ submitted (edit = delete + re-create, keeping an audit trail).
           │ HTTPS / JSON REST              │ HTTPS / JSON REST
           ▼                                ▼
 ┌────────────────────────────────────────────────────────────┐
-│                 AgriTasks REST API (this repo)             │
+│                FarmMarshal REST API (this repo)             │
 │                                                            │
 │   Trail-1: Rust + Axum        Trail-2: Node.js + Fastify   │
 │   server-rust/ :8080          server-node/ :3000           │
@@ -92,16 +92,25 @@ webapp/
 └── client/                  ← React 18 + Vite + TypeScript SPA
     └── src/
         ├── main.tsx         # entry, router mount
-        ├── App.tsx          # layout + route guard by role
+        ├── App.tsx          # layout + route guard by role + locale switcher
         ├── api.ts           # typed HTTP client (fetch wrapper)
         ├── auth.tsx         # AuthContext: session in localStorage
+        ├── i18n/            # LOCALIZATION LAYER (see §11)
+        │   ├── index.tsx    #   LocaleProvider, useI18n(), t(), dir, formatters
+        │   ├── en.ts        #   English catalogue (reference key set)
+        │   └── ar.ts        #   Arabic catalogue (default locale)
         ├── pages/
         │   ├── Login.tsx            # role-aware sign-in
         │   ├── Dashboard.tsx        # owner overview: problems/solutions/activities KPIs
         │   ├── TaskList.tsx         # filterable table of all tasks
         │   ├── TaskDetail.tsx       # evidence photos + comments + audio + ratings
+        │   ├── TaskReport.tsx       # per-task audit report: people/milestones/issue/comments
+        │   ├── Farms.tsx            # farm portfolio with issue buckets
+        │   ├── FarmDetail.tsx       # one farm: issues by stage + event timelines
+        │   ├── Finance.tsx          # ledger + category KPIs + CSV export
+        │   ├── ExpertNetwork.tsx    # F6 directory, consultations, escrow actions
         │   └── Evaluations.tsx      # people directory with avg ratings; rate modal
-        └── styles.css
+        └── styles.css               # logical-property layout (direction-agnostic)
 ```
 
 ### 3.2 Layers (both trails share this shape)
@@ -119,15 +128,21 @@ webapp/
 ```
 App
 ├── AuthProvider                    (session context, localStorage-backed)
-└── Layout (sidebar: Dashboard | Tasks | Evaluations)
-    ├── /login        → Login                       [public]
-    ├── /dashboard    → Dashboard                   [owner]
-    ├── /tasks        → TaskList                    [owner+moderator]
-    ├── /tasks/:id    → TaskDetail                  [all roles; permissions vary]
+├── LocaleProvider                  (locale + dir; sets <html lang/dir>)
+└── Layout (sidebar: Dashboard | Tasks | Farms | Finance | Experts | Evaluations)
+    ├── /login          → Login                       [public]
+    ├── /dashboard      → Dashboard                   [owner]
+    ├── /tasks          → TaskList                    [owner+moderator]
+    ├── /tasks/:id      → TaskDetail                  [all roles; permissions vary]
     │     ├── EvidencePanel (before/after photos)
     │     ├── CommentThread (text + audio player, recorder)
     │     └── RatingWidget   (visible per §1 matrix)
-    └── /evaluations  → Evaluations (people + stars + rate button) [owner+moderator]
+    ├── /tasks/:id/report → TaskReport                [owner+moderator]
+    ├── /farms          → Farms (portfolio)           [owner+moderator]
+    ├── /farms/:id      → FarmDetail                  [owner+moderator]
+    ├── /finance        → Finance                     [owner+accountant]
+    ├── /experts        → ExpertNetwork               [all roles]
+    └── /evaluations    → Evaluations (people + stars + rate button) [owner+moderator]
 ```
 
 ## 4. Dynamic Architecture (key flows)
@@ -220,13 +235,15 @@ no handler changes required. Audio files move to S3-compatible object storage.
 
 ```
 POST /auth/login                {email,password} → {token,user}
-GET  /users                                       → User[] (role-filtered fields)
+GET  /users                                       → User[] (TENANT-SCOPED, see §7.1)
 GET  /users/:id/stats                             → {avgStars,count,recent[]}
 
 GET  /tasks?status=&workerId=                     → Task[]
 GET  /tasks/:id                                   → Task
 POST /tasks                                      → Task   [moderator|owner]
 PATCH /tasks/:id/status {action:start|submit|approve|reject, note?} → Task
+GET  /tasks/:id/report                           → {task,farm,reporter,assignee,worker,
+                                                    issue,issueEvents,comments,milestones}
 
 GET  /tasks/:id/comments                         → Comment[]
 POST /tasks/:id/comments {text}                  → Comment
@@ -239,8 +256,22 @@ GET  /finances?type=&category=                   → Finance[]   [owner sees all
 POST /finances (multipart: fields + optional receipt photo) → Finance
 GET  /finances/summary                           → KPI totals per category
 
+v2 surface (excerpt — full list in EVOLUTION_PLAN §8):
+GET  /v2/farms                                   → Farm[]
+GET  /v2/issues?farmId=                          → Issue[]
+GET  /v2/issues/:id/events                       → IssueEvent[]
+GET  /v2/experts                                 → ExpertProfile[] (verified only)
+GET  /v2/experts/me                              → ExpertProfile | null
+POST /v2/consultations                           → Consultation
+GET  /v2/consultations                           → Consultation[] (visible pool)
+GET  /v2/consultations/:id                       → {consultation,responses,
+                                                    isRequester,canRespond}
+POST /v2/consultations/:id/responses             → ConsultationResponse
+PATCH /v2/consultations/:id/choose               → {netPayoutEgp}
+
 Static: GET /uploads/*  (audio + receipt files)
 CORS: enabled for dev origins; JWT-style Bearer auth everywhere else.
+Clients send Accept-Language; error bodies stay language-neutral (see §11.4).
 ```
 
 ## 7. Security
@@ -250,6 +281,23 @@ CORS: enabled for dev origins; JWT-style Bearer auth everywhere else.
 - Passwords: demo store uses plaintext seed values; production swaps to bcrypt
   (`argon2` in Rust) at the same seam (`store.verifyPassword`).
 - CORS restricted to known origins in production config.
+
+### 7.1 Tenant scoping of the people directory (R16)
+
+`GET /users` and `GET /users/:id/stats` are filtered to the caller's tenant:
+
+```
+visibleUserIds(caller) = { caller } ∪ { u : ∃ farm f, member(caller,f) ∧ member(u,f) }
+```
+
+- Derived from `farm_members`, so it follows invitations automatically — there is no separate
+  tenant column to keep in sync.
+- The platform `admin` persona bypasses the filter; role administration is cross-tenant by
+  definition.
+- Out-of-tenant `/users/:id/stats` returns **404, not 403**. A 403 confirms the id exists and
+  turns the endpoint into an account-enumeration oracle.
+- Implemented identically in `server-node/src/routes/users.ts` (`visibleUserIds`) and
+  `server-rust/src/routes/mod.rs` (`visible_user_ids`).
 
 ## 8. Mobile-app integration plan
 Phase 1 (now): webapp API runs alongside Firebase; owner/moderator workflows live here.
@@ -312,3 +360,79 @@ photos, CSV export. Mobile: expense logging with receipt photo from the field.
 ### R6 — Ratings on mobile ✅ (moderator rates worker after approval)
 After approval, moderator review screen gains "Rate worker"; owner rates from
 the web. Same `/ratings` API for both surfaces.
+
+### R7 — Farm portfolio & issue buckets ✅ (web + mobile + both trails)
+`GET /v2/farms` + `GET /v2/issues?farmId=` power a portfolio view that groups each
+farm's issues into **New / Active / Solved** buckets (`bucketOf(issue)` derives the
+bucket from the R2 workflow stage, so adding a stage does not touch the UI).
+Web: `pages/Farms.tsx` → `pages/FarmDetail.tsx`. Mobile: `FarmsScreen` →
+`FarmDetailScreen`, which lazily loads `GET /v2/issues/:id/events` per issue so a
+farm with hundreds of issues still opens in one round trip.
+
+### R8 — Per-task audit report ✅ (web + mobile + both trails)
+`GET /tasks/:id/report` returns one aggregate — task, farm, the three people
+(reporter/assignee/worker), the linked issue and its events, comments, and a
+four-point milestone series (created → started → submitted → reviewed). The
+aggregate exists so the report is a *single* authoritative read: assembling it
+client-side from five endpoints would let the panels disagree with each other.
+
+### R9 — Expert network surface ✅ (web + mobile + both trails)
+`GET /v2/experts` (verified only), `GET /v2/consultations` (public + own +
+answered), `GET /v2/consultations/:id`. The detail endpoint is the security
+boundary: non-public consultations 404 for non-participants, the group thread id
+is disclosed only to members, and `commissionAmount`/`netPayoutEgp` only to the
+requester and the owning responder. `POST …/responses` opens (or joins) the F6b
+group thread; `PATCH …/choose` is requester-only and creates the 1:1 thread.
+
+### R10 — Tenant-scoped people directory ✅ (both trails)
+See §7.1. Closed an unbounded read of every account on the platform.
+
+### R11 — Arabic-first bilingual UI 🔨 (see §11)
+Requirement R15 + `docs/LOCALIZATION_SPEC.md`.
+
+---
+
+## 11. Localization architecture (R15)
+
+### 11.1 Placement in the layer model
+
+Localization is a **cross-cutting presentation concern**. It lives above the API client and
+below every page; no service, store or route handler is aware of a locale.
+
+```
+LocaleProvider (context)
+   ├─ locale: 'ar' | 'en'          persisted in localStorage['farmmarshal_locale']
+   ├─ dir:    'rtl' | 'ltr'        written to <html dir> and <html lang>
+   ├─ t(key, vars?)                catalogue lookup + interpolation + plural selection
+   └─ fmt: { date, time, number, currency }   Intl formatters, memoized per locale
+```
+
+### 11.2 Catalogue design
+
+- `en.ts` is the **reference key set**; `ar.ts` must match it exactly. A unit test compares the
+  two key sets and fails on drift — this is the mechanism that keeps coverage at 100% as pages
+  are added, rather than a manual audit.
+- Values are either a string or a plural record `{ zero?, one?, two?, few?, many?, other }`
+  resolved through `Intl.PluralRules`. Arabic needs all six categories; English uses two.
+- Interpolation is `{{name}}`. Every substitution is bidi-isolated at render time, so an
+  interpolated `f-1` or `owner@agri.com` cannot reorder the surrounding Arabic sentence.
+- Keys are namespaced by surface (`nav.*`, `login.*`, `task.*`, `expert.*`, `common.*`) so a
+  deleted page's keys are trivially identifiable.
+
+### 11.3 RTL strategy — logical properties, not a mirrored stylesheet
+
+`styles.css` uses `margin-inline-*`, `padding-inline-*`, `inset-inline-*`, `border-inline-*`
+and `text-align: start/end`. Setting `<html dir="rtl">` therefore flips the entire layout with
+**zero duplicated CSS**. A second, mirrored stylesheet was rejected: it doubles the maintenance
+surface and drifts silently the first time someone edits only one copy.
+
+Directional glyphs (`←`, `→`, chevrons) come from `t()` so the catalogue chooses the correct
+arrow per direction; they are not CSS-transformed, because `transform: scaleX(-1)` also mirrors
+any text baked beside them.
+
+### 11.4 Server boundary
+
+The API is language-neutral (LOCALIZATION_SPEC §6). `api.ts` sends `Accept-Language: <locale>`,
+and maps failures to a localized message by **HTTP status**, showing the raw server `error`
+string only when `import.meta.env.DEV`. This keeps internal messages out of the product UI —
+which is a security property as much as a localization one.

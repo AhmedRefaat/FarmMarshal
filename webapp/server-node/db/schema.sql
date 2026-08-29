@@ -1,5 +1,5 @@
 -- =============================================================================
--- AgriTasks — PostgreSQL schema v2 (ADR-004) + TimescaleDB for telemetry
+-- FarmMarshal — PostgreSQL schema v2 (ADR-004) + TimescaleDB for telemetry
 -- P0 scope: farms/personas/issues/entitlements/audit (+ existing entities).
 -- Later phases extend this file; migrations run in order under db/migrations/.
 -- =============================================================================

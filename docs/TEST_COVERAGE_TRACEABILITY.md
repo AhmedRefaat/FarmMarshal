@@ -48,6 +48,13 @@ Test IDs: `P0-x` = `server-node/test/p0.test.ts`, `PH-x` = `test/phases.test.ts`
 | F6b threads | choose-response locks answers; rating feeds reputation | PH-17 | T9 |
 | F7 academy | only CLOSED issues publishable; grading boundary exact (89.9≠90); mcq options required; empty quiz unpublishable | PH-18..PH-21 | T10 |
 | R1 geo-evidence | shutter GPS stored beside photo URL | (route impl) | T2 |
+| R16 tenant directory (ADR-024) | `GET /users` returns only farm co-members; admin exempt; out-of-tenant stats → 404 not 403 | (route impl, both trails) | T12 |
+| R15.1/R15.3 catalogue coverage | `ar` and `en` key sets identical; no key missing after a new screen lands | L1 | — |
+| R15.1 string discipline | no user-facing literal left in pages/screens | L2 | L4 |
+| R15.2 register | simplified MSA; no dialect/transliteration | L3 (human review) | — |
+| R15.6 RTL layout | mirroring correct; no clipping at max font size | L4 | T1–T12 in `ar` |
+| R15.4/R15.5 formatting | Gregorian + Western digits in both locales; correct Arabic plural category | L5 | — |
+| R15.7 bidi isolation | Latin ids/emails/coords render in order inside Arabic sentences | L6 | L4 |
 
 ## 2. Measured coverage — server-node (v8 provider)
 

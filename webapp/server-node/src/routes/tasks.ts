@@ -25,9 +25,14 @@ import type { FastifyInstance } from 'fastify';
 import type { Session, Task, TaskStatus } from '../types.js';
 import { requireRole } from '../auth.js';
 import {
+  getFarm,
   getTask,
+  getUser,
   insertTask,
+  listComments,
   listFarmMembers,
+  listIssueEvents,
+  listIssues,
   listTasks,
   updateTask,
 } from '../store.js';
@@ -35,6 +40,13 @@ import {
 /** Farms the caller belongs to. Empty means the caller is in no tenant. */
 function farmIdsFor(userId: string): Set<string> {
   return new Set(listFarmMembers(userId).map((m) => m.farmId));
+}
+
+/** Identity fields safe to show inside a report — never the credential seam. */
+function publicUser(userId?: string) {
+  if (!userId) return null;
+  const u = getUser(userId);
+  return u ? { id: u.id, name: u.name, role: u.role } : null;
 }
 
 /**
@@ -75,6 +87,48 @@ export default async function taskRoutes(app: FastifyInstance) {
       return reply.code(404).send({ error: 'Task not found' });
     }
     return task;
+  });
+
+  /**
+   * Full audit report for ONE task — everything that happened to it from the
+   * moment it was reported until it was solved, in a single response so the
+   * owner/moderator does not have to stitch four endpoints together.
+   * Same object-level authorization as GET /tasks/:id.
+   */
+  app.get('/tasks/:id/report', { preHandler: requireRole() }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const task = getTask(id);
+    if (!task) return reply.code(404).send({ error: 'Task not found' });
+    const session = (request as any).session as Session;
+    if (!canAccessTask(session, task, farmIdsFor(session.userId))) {
+      return reply.code(404).send({ error: 'Task not found' });
+    }
+
+    // The issue that this task implements, if the workflow created one.
+    const issue = listIssues({ farmId: task.farmId }).find((i) => i.taskId === task.id);
+    const comments = listComments(task.id);
+
+    return {
+      task,
+      farm: getFarm(task.farmId) ?? null,
+      // "reporter" is whoever opened the work: the issue author when the task
+      // came out of the 7-stage workflow, otherwise the assigning moderator.
+      reporter: publicUser(issue?.createdBy ?? task.assigneeId),
+      assignee: publicUser(task.assigneeId),
+      worker: publicUser(task.workerId),
+      issue: issue ?? null,
+      issueEvents: issue ? listIssueEvents(issue.id) : [],
+      comments,
+      // Lifecycle stamps flattened into one ordered list for the timeline UI.
+      // `by` is a display name (never an internal id) so the report reads as a
+      // narrative without the client needing a second lookup.
+      milestones: [
+        { key: 'created', at: task.createdAt, by: publicUser(task.assigneeId)?.name ?? task.assigneeId },
+        { key: 'started', at: task.startedAt, by: publicUser(task.workerId)?.name ?? task.workerId },
+        { key: 'submitted', at: task.submittedAt, by: publicUser(task.workerId)?.name ?? task.workerId },
+        { key: 'reviewed', at: task.reviewedAt, by: publicUser(task.assigneeId)?.name ?? task.assigneeId, note: task.reviewNote },
+      ].filter((m) => typeof m.at === 'number'),
+    };
   });
 
   /**

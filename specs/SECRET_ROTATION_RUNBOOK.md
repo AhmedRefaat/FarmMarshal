@@ -1,6 +1,6 @@
 # Secret Rotation Runbook — `AUTH_SECRET`
 
-**Audience:** operators running AgriTasks (Node trail and/or Rust trail)
+**Audience:** operators running FarmMarshal (Node trail and/or Rust trail)
 **Applies to:** every environment (development, test, staging, production)
 **Status:** first secure runbook for this repository — created during Wave 0
 

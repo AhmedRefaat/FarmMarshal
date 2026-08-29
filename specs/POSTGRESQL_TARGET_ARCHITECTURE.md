@@ -1,9 +1,9 @@
-# PostgreSQL Target Architecture — AgriTasks
+# PostgreSQL Target Architecture — FarmMarshal
 
 **Document type:** Design and planning. **No executable artefact.**
 **Date:** 2026-08-27
 **Status:** `DRAFT — BLOCKED ON D-1`
-**Scope:** Persistence architecture for the AgriTasks platform.
+**Scope:** Persistence architecture for the FarmMarshal platform.
 **Companion documents:** [POSTGRESQL_SCHEMA_BLUEPRINT.md](POSTGRESQL_SCHEMA_BLUEPRINT.md) · [POSTGRESQL_SECURITY_MODEL.md](POSTGRESQL_SECURITY_MODEL.md) · [POSTGRESQL_MIGRATION_STRATEGY.md](POSTGRESQL_MIGRATION_STRATEGY.md) · [POSTGRESQL_OPEN_DECISIONS.md](POSTGRESQL_OPEN_DECISIONS.md)
 
 > **What was done to produce this document:** every current-state claim in §1 was
@@ -559,7 +559,7 @@ flowchart LR
     D3["Inverter"] --> B
     D4["Robot"] --> B
     B["MQTT broker<br/>per-device credentials"]
-    B --> V["Ingest worker<br/>role: agritasks_ingest"]
+    B --> V["Ingest worker<br/>role: farmmarshal_ingest"]
     V --> CHK{"Valid?<br/>device known · schema · range"}
     CHK -- no --> DLQ[("dead_letter<br/>bounded, alerted")]
     CHK -- yes --> BAT["Batch by (device_id, time)"]

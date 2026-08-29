@@ -1,6 +1,6 @@
 # Remediation Wave Prompts — Index
 
-> Implementation prompts for the AgriTasks security remediation programme.
+> Implementation prompts for the FarmMarshal security remediation programme.
 > Each prompt is a self-contained handoff derived from validated findings only.
 
 ---

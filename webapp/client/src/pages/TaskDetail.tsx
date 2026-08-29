@@ -12,14 +12,18 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { useErrorMessage, useI18n } from '../i18n';
+import type { MessageKey } from '../i18n';
 import type { Comment, Task } from '../types';
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t, fmt } = useI18n();
+  const describeError = useErrorMessage();
 
   const [task, setTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -36,9 +40,9 @@ export default function TaskDetail() {
   // Initial load: task + its comment thread in parallel.
   useEffect(() => {
     if (!id) return;
-    api.task(id).then(setTask).catch((e) => setError(e.message));
-    api.comments(id).then(setComments).catch((e) => setError(e.message));
-  }, [id]);
+    api.task(id).then(setTask).catch((e) => setError(describeError(e)));
+    api.comments(id).then(setComments).catch((e) => setError(describeError(e)));
+  }, [id, describeError]);
 
   /** Moderator decision → PATCH transition → refresh task view. */
   async function decide(action: 'approve' | 'reject') {
@@ -46,11 +50,11 @@ export default function TaskDetail() {
     try {
       const note =
         action === 'reject'
-          ? window.prompt('Rejection note for the worker:') ?? ''
+          ? window.prompt(t('task.rejectPrompt')) ?? ''
           : undefined;
       setTask(await api.transitionTask(id, action, note));
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
     }
   }
 
@@ -61,8 +65,8 @@ export default function TaskDetail() {
       const c = await api.addComment(id, draft.trim());
       setComments((cs) => [...cs, c]); // append locally; no refetch needed
       setDraft('');
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
     }
   }
 
@@ -92,7 +96,7 @@ export default function TaskDetail() {
   }
 
   if (error) return <p className="error">{error}</p>;
-  if (!task) return <p>Loading…</p>;
+  if (!task) return <p>{t('common.loading')}</p>;
 
   const isMod = user?.role === 'moderator';
   const canDecide = isMod && task.status === 'submitted';
@@ -100,26 +104,40 @@ export default function TaskDetail() {
   return (
     <>
       {/* 1 ── Header */}
-      <h1>{task.title}</h1>
-      <span className={`badge b-${task.status}`}>{task.status}</span>
-      <p className="desc">{task.description}</p>
+      <h1><bdi>{task.title}</bdi></h1>
+      <span className={`badge b-${task.status}`}>
+        {t(`status.${task.status}` as MessageKey)}
+      </span>
+      <p className="desc"><bdi>{task.description}</bdi></p>
       <p className="muted">
-        📍 {task.lat.toFixed(5)}, {task.lng.toFixed(5)}
-        {task.reviewNote ? ` · note: ${task.reviewNote}` : ''}
+        📍{' '}
+        {t('task.location', {
+          // Coordinates stay Western digits in both locales (ADR-027) and are
+          // isolated by the interpolator so RTL never reorders lat/lng.
+          lat: fmt.number(Number(task.lat.toFixed(5))),
+          lng: fmt.number(Number(task.lng.toFixed(5))),
+        })}
+      </p>
+      {task.reviewNote && (
+        <p className="muted">{t('task.reviewNote', { note: task.reviewNote })}</p>
+      )}
+      <p>
+        {/* Full audit trail: reporter, assignee, milestones, issue workflow */}
+        <Link to={`/tasks/${task.id}/report`}>📄 {t('task.openReport')}</Link>
       </p>
 
       {/* 2 ── Evidence photos */}
       <div className="photos">
         {task.beforePhotoUrl && (
           <figure>
-            <figcaption>BEFORE</figcaption>
-            <img src={task.beforePhotoUrl} alt="before" />
+            <figcaption>{t('task.before')}</figcaption>
+            <img src={task.beforePhotoUrl} alt={t('task.before')} />
           </figure>
         )}
         {task.afterPhotoUrl && (
           <figure>
-            <figcaption>AFTER</figcaption>
-            <img src={task.afterPhotoUrl} alt="after" />
+            <figcaption>{t('task.after')}</figcaption>
+            <img src={task.afterPhotoUrl} alt={t('task.after')} />
           </figure>
         )}
       </div>
@@ -128,24 +146,25 @@ export default function TaskDetail() {
       {canDecide && (
         <div className="row">
           <button className="green" onClick={() => decide('approve')}>
-            ✅ Approve
+            ✅ {t('task.approve')}
           </button>
           <button className="red" onClick={() => decide('reject')}>
-            ❌ Reject
+            ❌ {t('task.reject')}
           </button>
         </div>
       )}
 
       {/* 4 ── Comment thread */}
-      <h2>Discussion ({comments.length})</h2>
+      <h2>{t('task.discussion', { count: comments.length })}</h2>
       <ul className="thread">
         {comments.map((c) => (
           <li key={c.id}>
-            <b>{c.authorName}</b>{' '}
+            <b><bdi>{c.authorName}</bdi></b>{' '}
             <span className="muted">
-              ({c.authorRole}) · {new Date(c.createdAt).toLocaleTimeString()}
+              ({t(`role.${c.authorRole}` as MessageKey)}) ·{' '}
+              {fmt.time(c.createdAt)}
             </span>
-            {c.text && <p>{c.text}</p>}
+            {c.text && <p><bdi>{c.text}</bdi></p>}
             {/* Voice-note player when this comment carries audio */}
             {c.audioUrl && <audio controls src={c.audioUrl} />}
           </li>
@@ -155,19 +174,19 @@ export default function TaskDetail() {
       {/* Text composer */}
       <div className="row">
         <input
-          placeholder="Write a comment…"
+          placeholder={t('task.commentPlaceholder')}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendComment()}
         />
-        <button onClick={sendComment}>Send</button>
+        <button onClick={sendComment}>{t('common.send')}</button>
 
         {/* Mic button toggles recording state */}
         {!recording ? (
-          <button onClick={startRecording}>🎙️ Record</button>
+          <button onClick={startRecording}>🎙️ {t('task.record')}</button>
         ) : (
           <button className="red" onClick={stopRecording}>
-            ⏹ Stop &amp; send
+            ⏹ {t('task.stopSend')}
           </button>
         )}
       </div>

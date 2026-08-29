@@ -7,9 +7,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { signInWithGoogle } from '../googleAuth';
+import { LocaleSwitch, useI18n } from '../i18n';
 
 export default function Login() {
   const { login } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [email, setEmail] = useState('owner@agri.com'); // prefilled for demos
   const [password, setPassword] = useState('pass123');
@@ -24,8 +26,9 @@ export default function Login() {
     try {
       await login(email, password);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message ?? 'Login failed');
+    } catch {
+      // Server wording is developer-facing (ADR-029); show localized copy.
+      setError(t('login.failed'));
     } finally {
       setBusy(false);
     }
@@ -34,24 +37,27 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <h1>🌾 AgriTasks</h1>
-        <p>Land Owner Portal</p>
+        <img className="login-mark" src="/logo.png" alt={t('app.name')} />
+        <h1>{t('app.name')}</h1>
+        <p>{t('app.tagline')}</p>
         <input
-          placeholder="Email"
+          placeholder={t('login.email')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
           required
         />
         <input
-          placeholder="Password"
+          placeholder={t('login.password')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
           required
         />
         {error && <p className="error">{error}</p>}
-        <button disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <button disabled={busy}>
+          {busy ? t('login.signingIn') : t('login.signIn')}
+        </button>
 
         {/* Google Sign-In — same session storage as password login */}
         <button
@@ -60,17 +66,18 @@ export default function Login() {
             setError('');
             try {
               const { token, user } = await signInWithGoogle();
-              localStorage.setItem('agritasks_token', token);
-              localStorage.setItem('agritasks_user', JSON.stringify(user));
+              localStorage.setItem('farmmarshal_token', token);
+              localStorage.setItem('farmmarshal_user', JSON.stringify(user));
               window.location.href = '/'; // full reload picks up the session
-            } catch (e: any) {
-              setError(e?.message ?? 'Google sign-in failed');
+            } catch {
+              setError(t('login.googleFailed'));
             }
           }}
         >
-          🔵 Continue with Google
+          🔵 {t('login.google')}
         </button>
-        <small>Demo: owner@ / moderator@ / worker@agri.com — pass123</small>
+        <LocaleSwitch className="locale-switch login-locale" />
+        <small>{t('login.demoHint')}</small>
       </form>
     </div>
   );

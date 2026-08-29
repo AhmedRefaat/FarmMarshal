@@ -1,4 +1,4 @@
-# AgriTasks v2 — Readiness Review & Supported-Options Catalog
+# FarmMarshal v2 — Readiness Review & Supported-Options Catalog
 
 **Version:** 1.0 · **Date:** 2026-08-25 · **Purpose:** final cross-check of all planning docs
 against your requirements; definitive list of what each app will support, for whom; and the

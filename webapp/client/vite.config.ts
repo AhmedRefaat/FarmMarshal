@@ -15,7 +15,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3000',
+      // The server registers routes at the root (/auth/login, /tasks, …),
+      // so the client's /api namespace has to be stripped before forwarding.
+      '/api': {
+        target: 'http://localhost:3000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       '/uploads': 'http://localhost:3000',
     },
   },

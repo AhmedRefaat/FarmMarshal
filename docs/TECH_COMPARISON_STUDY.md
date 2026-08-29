@@ -1,4 +1,4 @@
-# AgriTasks — Code & Technology Comparison Study
+# FarmMarshal — Code & Technology Comparison Study
 
 **Version:** 1.0 · **Date:** 2026-08-25 · **Status:** DECISION DOCUMENT (no code changes yet)
 
@@ -6,7 +6,7 @@
 > for (A) the Mobile app, (B) the Web frontend, and (C) the Web backend/API — so that
 > every past choice is justified and future choices are made by matrix, not assumption.
 >
-> Project-specific weighting matters more than generic benchmarks. AgriTasks' hard
+> Project-specific weighting matters more than generic benchmarks. FarmMarshal's hard
 > requirements are: **IoT device connectivity** (water meters, valves, solar inverters,
 > greenhouse robots), **rich media** (photos, video streaming + annotation, voice notes),
 > **realtime chat with translation**, **offline-tolerant field usage**, and — per the

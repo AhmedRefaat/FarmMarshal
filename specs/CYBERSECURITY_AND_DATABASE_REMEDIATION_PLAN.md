@@ -1,4 +1,4 @@
-# AgriTasks — Cybersecurity and Database Remediation Plan
+# FarmMarshal — Cybersecurity and Database Remediation Plan
 
 **Plan date:** 2026-08-26
 **Editorial review date:** 2026-08-27 — see `specs/AUDIT_DOCUMENT_REVIEW_LOG.md`

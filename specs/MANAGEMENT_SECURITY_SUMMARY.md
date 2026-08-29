@@ -1,4 +1,4 @@
-# Management Security Summary — AgriTasks
+# Management Security Summary — FarmMarshal
 
 **Audience:** Executive leadership, board, and non-technical stakeholders
 **Date:** 27 August 2026

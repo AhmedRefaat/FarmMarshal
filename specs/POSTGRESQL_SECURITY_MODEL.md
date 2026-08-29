@@ -1,4 +1,4 @@
-# PostgreSQL Security Model — AgriTasks
+# PostgreSQL Security Model — FarmMarshal
 
 **Document type:** Design and planning. **No executable DDL, no policy applied.**
 **Date:** 2026-08-27
@@ -327,13 +327,13 @@ Controls:
 
 | Role | Grants | Notes |
 |---|---|---|
-| `agritasks_owner` | Owns schema objects. **DDL only** | Used **only** by migrations. `NOLOGIN` in normal operation; credential held by the deploy pipeline |
-| `agritasks_app` | `SELECT, INSERT, UPDATE` on tenanted tables; `INSERT` only on `*_events`, `audit_events`, `outbox` | The API role. **Subject to RLS** — not the owner, no `BYPASSRLS` |
-| `agritasks_ingest` | `INSERT` on `telemetry`; `SELECT` on `devices`, `device_credentials` | Telemetry worker. No access to users, messages, or finance |
-| `agritasks_outbox` | `SELECT, UPDATE` on `outbox` only | Dispatcher. Cannot read business tables |
-| `agritasks_media` | `SELECT, UPDATE` on `media_objects` | Media worker |
-| `agritasks_report` | `SELECT` on materialised views only | Read-only, no base tables |
-| `agritasks_backup` | Replication/backup | Not usable for queries |
+| `farmmarshal_owner` | Owns schema objects. **DDL only** | Used **only** by migrations. `NOLOGIN` in normal operation; credential held by the deploy pipeline |
+| `farmmarshal_app` | `SELECT, INSERT, UPDATE` on tenanted tables; `INSERT` only on `*_events`, `audit_events`, `outbox` | The API role. **Subject to RLS** — not the owner, no `BYPASSRLS` |
+| `farmmarshal_ingest` | `INSERT` on `telemetry`; `SELECT` on `devices`, `device_credentials` | Telemetry worker. No access to users, messages, or finance |
+| `farmmarshal_outbox` | `SELECT, UPDATE` on `outbox` only | Dispatcher. Cannot read business tables |
+| `farmmarshal_media` | `SELECT, UPDATE` on `media_objects` | Media worker |
+| `farmmarshal_report` | `SELECT` on materialised views only | Read-only, no base tables |
+| `farmmarshal_backup` | Replication/backup | Not usable for queries |
 
 Additional rules:
 
@@ -341,7 +341,7 @@ Additional rules:
   default `PUBLIC` grants are permissive and must be removed before any table
   exists.
 - **No role has `DELETE`** on immutable tables.
-- **Column-level revokes** for class S: `agritasks_app` cannot `SELECT`
+- **Column-level revokes** for class S: `farmmarshal_app` cannot `SELECT`
   `quiz_answer_keys.answer`; scoring happens in a `SECURITY DEFINER` function.
 - Every `SECURITY DEFINER` function sets `search_path` explicitly — omitting it is
   a privilege-escalation vector.
@@ -358,7 +358,7 @@ Additional rules:
 | Backup | Automated daily full + continuous WAL archiving |
 | PITR window | Minimum 7 days; target 30 (`PG-D-08`) |
 | Encryption | At rest, with a key **distinct** from the database volume key |
-| Access | `agritasks_backup` only; restore requires named approval |
+| Access | `farmmarshal_backup` only; restore requires named approval |
 | **Rehearsal** | **A restore that has never been performed is not a backup.** Quarterly rehearsal into an isolated environment, timed, with the RTO/RPO achieved recorded |
 | Restore target isolation | Never restored into an environment sharing credentials with production |
 | Post-restore verification | Audit hash chain verified; row counts reconciled; **RLS policies confirmed present** — a restore that drops policies is a silent regression |
@@ -384,8 +384,8 @@ tenanted table:
 | 7 | **Pooled-connection leak test** | Two sequential requests as different tenants on the same physical connection do not leak context (§4.1) |
 | 8 | Anonymous | No context set → query raises, never returns rows |
 | 9 | Admin scoping | Organization admin sees own org only; cross-org requires `platform_operator` and writes an audit row |
-| 10 | Immutability | `UPDATE`/`DELETE` on `audit_events` and `*_events` fails as `agritasks_app` |
-| 11 | Role separation | `agritasks_ingest` cannot read `messages` or `ledger_entries` |
+| 10 | Immutability | `UPDATE`/`DELETE` on `audit_events` and `*_events` fails as `farmmarshal_app` |
+| 11 | Role separation | `farmmarshal_ingest` cannot read `messages` or `ledger_entries` |
 | 12 | Enumeration | Forbidden and nonexistent ids produce byte-identical responses (I-7) |
 | 13 | Redaction | No class C, P, F, or S value appears in any log line or error body |
 
@@ -409,7 +409,7 @@ flowchart TB
         TX["withTransaction()<br/>SET LOCAL app.* — I-9"]
     end
 
-    subgraph db["PostgreSQL — role agritasks_app, NOT owner"]
+    subgraph db["PostgreSQL — role farmmarshal_app, NOT owner"]
         RLS{"RLS policies<br/>FORCE ROW LEVEL SECURITY"}
         T1[("Tenanted tables<br/>organization_id + farm_id NOT NULL")]
         T2[("audit_events<br/>INSERT only · hash-chained")]

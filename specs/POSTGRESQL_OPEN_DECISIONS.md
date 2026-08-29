@@ -1,4 +1,4 @@
-# PostgreSQL Open Decisions — AgriTasks
+# PostgreSQL Open Decisions — FarmMarshal
 
 **Document type:** Decision register. **No decision below has been made by this document.**
 **Date:** 2026-08-27

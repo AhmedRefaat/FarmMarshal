@@ -79,9 +79,10 @@ async fn send_msg(State(state): App, Path(id): Path<String>, headers: HeaderMap,
     let text = b["text"].as_str().unwrap_or("").to_string();
     // Language auto-detect v1: Arabic vs Latin covers the dominant real pair.
     let lang = if text.chars().any(|ch| ('\u{0600}'..='\u{06FF}').contains(&ch)) { "ar" } else { "en" };
+    let sender_name = db.users.get(&session.user_id).map(|u| u.name.clone()).unwrap_or_else(|| session.user_id.clone());
     let msg = Message {
         id: format!("msg-{}", uuid::Uuid::new_v4()), conversation_id: id.clone(), sender_id: session.user_id.clone(),
-        sender_name: session.user_id.clone(), msg_type: b["type"].as_str().unwrap_or("text").into(),
+        sender_name, msg_type: b["type"].as_str().unwrap_or("text").into(),
         original_text: Some(text), original_lang: Some(lang.into()),
         translations: Some(json!({})), media_url: b["mediaUrl"].as_str().map(String::from),
         duration_s: b["durationS"].as_u64(), pinned: false, reply_to_id: None,
@@ -408,6 +409,8 @@ async fn expert_apply(State(state): App, headers: HeaderMap, Json(b): Json<Value
     let profile = ExpertProfile {
         id: format!("exp-{}", uuid::Uuid::new_v4()), user_id: session.user_id.clone(),
         institution: b["institution"].as_str().map(String::from), years_exp: b["yearsExp"].as_f64(),
+        country: b["country"].as_str().map(String::from),
+        specializations: b["specializations"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
         status: "pending".into(), avg_stars: 0.0, answers_count: 0, total_earned_egp: 0.0,
         created_at: crate::util::now_ms(),
     };
@@ -457,6 +460,30 @@ async fn verify_expert(State(state): App, Path(id): Path<String>, headers: Heade
     }
 }
 
+/// Public expert directory — the reputation cards a requester compares before
+/// choosing an answer. Only VERIFIED experts are listed; pending applications
+/// stay private to the applicant and the admin queue.
+async fn list_experts(State(state): App, headers: HeaderMap) -> Response {
+    if let Err(e) = must_auth(&headers) { return e; }
+    let db = db_lock!(state);
+    let cards: Vec<Value> = db.experts.iter().filter(|e| e.status == "verified").map(|e| {
+        let mut v = serde_json::to_value(e).unwrap();
+        v["name"] = json!(db.users.get(&e.user_id).map(|u| u.name.clone()).unwrap_or_else(|| "Expert".into()));
+        v
+    }).collect();
+    ok_json(Value::Array(cards))
+}
+
+/// The caller's own expert card (null when they never applied).
+async fn my_expert_card(State(state): App, headers: HeaderMap) -> Response {
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
+    let db = db_lock!(state);
+    match db.experts.iter().find(|e| e.user_id == session.user_id) {
+        Some(e) => ok_json(serde_json::to_value(e).unwrap()),
+        None => ok_json(Value::Null),
+    }
+}
+
 async fn post_consultation(State(state): App, headers: HeaderMap, Json(b): Json<Value>) -> Response {
     let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
     if !b["question"].is_string() || !b["bountyEgp"].is_number() { return err(StatusCode::BAD_REQUEST, "question and bountyEgp required"); }
@@ -464,60 +491,185 @@ async fn post_consultation(State(state): App, headers: HeaderMap, Json(b): Json<
         id: format!("con-{}", uuid::Uuid::new_v4()), requester_id: session.user_id.clone(),
         question: b["question"].as_str().unwrap().into(), bounty_egp: b["bountyEgp"].as_f64().unwrap(),
         platform_commission_pct: 15.0, scope: b["scope"].as_str().unwrap_or("public").into(),
-        status: "open".into(), chosen_response_id: None, language: b["language"].as_str().unwrap_or("en").into(),
+        status: "open".into(), chosen_response_id: None, group_conversation_id: None,
+        language: b["language"].as_str().unwrap_or("en").into(),
         created_at: crate::util::now_ms(),
     };
     db_lock!(state).consultations.insert(c.id.clone(), c.clone());
     created(serde_json::to_value(&c).unwrap())
 }
 
+/// The consultation POOL. Public requests are visible to every authenticated
+/// user so a global expert can find work; targeted ones stay with the two
+/// parties involved.
+async fn list_consultations(State(state): App, headers: HeaderMap) -> Response {
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
+    let db = db_lock!(state);
+    let uid = &session.user_id;
+    let answered = |cid: &str| db.consultation_responses.iter().any(|r| r.consultation_id == cid && r.responder_id == *uid);
+    let mut visible: Vec<&Consultation> = db.consultations.values()
+        .filter(|c| c.scope == "public" || c.requester_id == *uid || answered(&c.id))
+        .collect();
+    visible.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    let rows: Vec<Value> = visible.into_iter().map(|c| {
+        let mut v = serde_json::to_value(c).unwrap();
+        v["requesterName"] = json!(db.users.get(&c.requester_id).map(|u| u.name.clone()).unwrap_or_else(|| "Requester".into()));
+        v["responseCount"] = json!(db.consultation_responses.iter().filter(|r| r.consultation_id == c.id).count());
+        v["mine"] = json!(c.requester_id == *uid);
+        v["answered"] = json!(answered(&c.id));
+        v
+    }).collect();
+    ok_json(Value::Array(rows))
+}
+
+/// Full consultation view: the request, every recommendation with its expert
+/// card, the payout split once settled, and the thread ids the UI opens.
+/// Payout amounts are shown to the requester and to the owning responder only.
+async fn consultation_detail(State(state): App, Path(id): Path<String>, headers: HeaderMap) -> Response {
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
+    let db = db_lock!(state);
+    let uid = &session.user_id;
+    let Some(c) = db.consultations.get(&id) else { return err(StatusCode::NOT_FOUND, "consultation not found"); };
+    let has_responded = db.consultation_responses.iter().any(|r| r.consultation_id == id && r.responder_id == *uid);
+    // A targeted request must not even confirm its own existence to outsiders.
+    if c.scope != "public" && c.requester_id != *uid && !has_responded {
+        return err(StatusCode::NOT_FOUND, "consultation not found");
+    }
+    let is_requester = c.requester_id == *uid;
+    // Thread ids are only meaningful to members: reading a thread you are not
+    // in returns 404, so handing the id out would render a dead chat window.
+    let is_member_of = |cid: &Option<String>| -> Option<String> {
+        let cid = cid.as_ref()?;
+        db.conversations.iter().find(|cv| cv.id == *cid && cv.member_ids.contains(uid)).map(|cv| cv.id.clone())
+    };
+
+    let mut consultation = serde_json::to_value(c).unwrap();
+    consultation["requesterName"] = json!(db.users.get(&c.requester_id).map(|u| u.name.clone()).unwrap_or_else(|| "Requester".into()));
+    match is_member_of(&c.group_conversation_id) {
+        Some(cv) => consultation["groupConversationId"] = json!(cv),
+        None => { consultation.as_object_mut().unwrap().remove("groupConversationId"); }
+    }
+
+    let mut responses: Vec<&ConsultationResponse> = db.consultation_responses.iter().filter(|r| r.consultation_id == id).collect();
+    responses.sort_by_key(|r| r.created_at);
+    let responses: Vec<Value> = responses.into_iter().map(|r| {
+        let expert = db.experts.iter().find(|e| e.user_id == r.responder_id);
+        let visible_money = is_requester || r.responder_id == *uid;
+        json!({
+            "id": r.id, "consultationId": r.consultation_id, "responderId": r.responder_id,
+            "responderName": db.users.get(&r.responder_id).map(|u| u.name.clone()).unwrap_or_else(|| "Expert".into()),
+            "answer": r.answer,
+            "conversationId": is_member_of(&r.conversation_id),
+            "ratingStars": r.rating_stars,
+            "payoutStatus": r.payout_status,
+            "commissionAmount": if visible_money { r.commission_amount } else { None },
+            "netPayoutEgp": if visible_money { r.net_payout_egp } else { None },
+            "createdAt": r.created_at,
+            "expert": expert.map(|e| json!({
+                "avgStars": e.avg_stars, "answersCount": e.answers_count, "country": e.country,
+                "institution": e.institution, "specializations": e.specializations, "yearsExp": e.years_exp,
+            })),
+        })
+    }).collect();
+
+    let can_respond = db.experts.iter().any(|e| e.user_id == *uid && e.status == "verified") && !is_requester && !has_responded;
+    ok_json(json!({ "consultation": consultation, "responses": responses, "isRequester": is_requester, "canRespond": can_respond }))
+}
+
 async fn respond_consultation(State(state): App, Path(id): Path<String>, headers: HeaderMap, Json(b): Json<Value>) -> Response {
     let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
+    let answer = b["answer"].as_str().unwrap_or("").trim().to_string();
+    if answer.is_empty() { return err(StatusCode::BAD_REQUEST, "answer required"); }
     let mut db = db_lock!(state);
     if !db.consultations.contains_key(&id) { return err(StatusCode::NOT_FOUND, "consultation not found"); }
     if let Err(msg) = crate::community::can_respond(&db, &session.user_id) {
         return err(StatusCode::FORBIDDEN, msg);
     }
-    db.consultation_responses.push(ConsultationResponse { id: format!("res-{}", uuid::Uuid::new_v4()), consultation_id: id.clone(), responder_id: session.user_id.clone(), answer: b["answer"].as_str().unwrap_or("").into(), rating_stars: None, net_payout_egp: None, payout_status: "none".into(), created_at: crate::util::now_ms() });
+    db.consultation_responses.push(ConsultationResponse { id: format!("res-{}", uuid::Uuid::new_v4()), consultation_id: id.clone(), responder_id: session.user_id.clone(), answer, rating_stars: None, net_payout_egp: None, commission_amount: None, conversation_id: None, payout_status: "none".into(), created_at: crate::util::now_ms() });
+
+    // F6b: while the request is open, requester + every responder share ONE
+    // group thread so the case can be discussed before a winner is picked.
+    let (requester_id, question, existing) = {
+        let c = db.consultations.get(&id).unwrap();
+        (c.requester_id.clone(), c.question.clone(), c.group_conversation_id.clone())
+    };
+    let group_id = match existing.filter(|g| db.conversations.iter().any(|cv| cv.id == *g)) {
+        Some(g) => g,
+        None => {
+            let conv = Conversation {
+                id: format!("cv-{}", uuid::Uuid::new_v4()), kind: "consultation".into(),
+                title: Some(question.chars().take(60).collect()), farm_id: None,
+                consultation_id: Some(id.clone()), member_ids: vec![requester_id],
+                created_by: db.consultations[&id].requester_id.clone(), created_at: crate::util::now_ms(),
+            };
+            let gid = conv.id.clone();
+            db.conversations.push(conv);
+            db.consultations.get_mut(&id).unwrap().group_conversation_id = Some(gid.clone());
+            gid
+        }
+    };
+    if let Some(cv) = db.conversations.iter_mut().find(|cv| cv.id == group_id) {
+        if !cv.member_ids.contains(&session.user_id) { cv.member_ids.push(session.user_id.clone()); }
+    }
     created(json!({ "ok": true }))
 }
 
 /// Choose winner: escrow split (pure fn) + payout pending + reputation update.
 async fn choose_response_rt(State(state): App, Path(id): Path<String>, headers: HeaderMap, Json(b): Json<Value>) -> Response {
-    let Ok(_) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
     let Some(response_id) = b["responseId"].as_str().map(String::from) else { return err(StatusCode::BAD_REQUEST, "responseId required"); };
     let mut db = db_lock!(state);
-    let bounty = match db.consultations.get(&id) {
-        Some(c) => c.bounty_egp,
+    let (bounty, commission_pct, question) = match db.consultations.get(&id) {
+        // Only the person who funded the bounty may release it.
+        Some(c) if c.requester_id != session.user_id => return err(StatusCode::FORBIDDEN, "only the requester may choose a response"),
+        Some(c) => (c.bounty_egp, c.platform_commission_pct, c.question.clone()),
         None => return err(StatusCode::NOT_FOUND, "consultation not found"),
     };
     let responder_id = match db.consultation_responses.iter_mut().find(|r| r.id == response_id && r.consultation_id == id) {
         Some(resp) => {
             resp.payout_status = "pending".into();
-            let (_commission, net) = crate::community::split_bounty(bounty, 15.0);
+            let (commission, net) = crate::community::split_bounty(bounty, commission_pct);
+            resp.commission_amount = Some(commission);
             resp.net_payout_egp = Some(net);
             Some((resp.responder_id.clone(), net))
         }
         None => return err(StatusCode::BAD_REQUEST, "response does not belong to this consultation"),
     };
-    if let (Some((responder, net)), Some(c)) = (&responder_id, db.consultations.get_mut(&id)) {
+    let Some((responder, net)) = responder_id else { return err(StatusCode::BAD_REQUEST, "response does not belong to this consultation"); };
+    if let Some(c) = db.consultations.get_mut(&id) {
         c.status = "chosen".into();
         c.chosen_response_id = Some(response_id.clone());
-        if let Some(exp) = db.experts.iter_mut().find(|e| e.user_id == *responder) {
-            exp.answers_count += 1;
-            exp.total_earned_egp += net;
-        }
     }
+    // F6b: dedicated direct thread between requester and chosen responder. It
+    // is PERSISTED, otherwise the promised chat window has no conversation to
+    // open.
+    let conv = Conversation {
+        id: format!("cv-{}", uuid::Uuid::new_v4()), kind: "direct".into(),
+        title: Some(question.chars().take(60).collect()), farm_id: None,
+        consultation_id: Some(id.clone()), member_ids: vec![session.user_id.clone(), responder.clone()],
+        created_by: session.user_id.clone(), created_at: crate::util::now_ms(),
+    };
+    let cv_id = conv.id.clone();
+    db.conversations.push(conv);
+    if let Some(resp) = db.consultation_responses.iter_mut().find(|r| r.id == response_id) {
+        resp.conversation_id = Some(cv_id);
+    }
+    if let Some(exp) = db.experts.iter_mut().find(|e| e.user_id == responder) {
+        exp.answers_count += 1;
+        exp.total_earned_egp += net;
+    }
+    drop(db);
     audit_db(&state, "", "", "consultation.choose", "consultation", &id);
-    ok_json(json!({ "netPayoutEgp": responder_id.map(|(_, n)| n).unwrap_or(0.0) }))
+    ok_json(json!({ "netPayoutEgp": net }))
 }
 
 async fn rate_consultation(State(state): App, Path(id): Path<String>, headers: HeaderMap, Json(b): Json<Value>) -> Response {
-    if let Err(e) = must_auth(&headers) { return e; }
+    let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
     let stars = b["stars"].as_u64().unwrap_or(0);
     if !(1..=5).contains(&stars) { return err(StatusCode::BAD_REQUEST, "stars 1..5 required"); }
     let mut db = db_lock!(state);
     let Some(c) = db.consultations.get(&id).cloned() else { return err(StatusCode::NOT_FOUND, "consultation not found"); };
+    if c.requester_id != session.user_id { return err(StatusCode::FORBIDDEN, "only the requester may rate the chosen answer"); }
     let chosen = c.chosen_response_id.clone();
     let Some(chosen) = chosen else { return err(StatusCode::BAD_REQUEST, "no chosen response yet"); };
     let responder = {
@@ -715,10 +867,11 @@ async fn evidence_upload(State(state): App, headers: HeaderMap, mut mp: Multipar
 /// ADR-022 CHAT media: photo/video captured in-app shared into the thread.
 async fn chat_media(State(state): App, Path(id): Path<String>, headers: HeaderMap, mut mp: Multipart) -> Response {
     let Ok(session) = must_auth(&headers) else { return err(StatusCode::UNAUTHORIZED, "Unauthorized"); };
-    let conv = {
+    let (conv, sender_name) = {
         let db = db_lock!(state);
+        let name = db.users.get(&session.user_id).map(|u| u.name.clone()).unwrap_or_else(|| session.user_id.clone());
         match db.conversations.iter().find(|c| c.id == id) {
-            Some(c) => c.clone(),
+            Some(c) => (c.clone(), name),
             None => return err(StatusCode::NOT_FOUND, "conversation not found"),
         }
     };
@@ -739,7 +892,7 @@ async fn chat_media(State(state): App, Path(id): Path<String>, headers: HeaderMa
     let Some(media_url) = url else { return err(StatusCode::BAD_REQUEST, "multipart file required"); };
     let msg = Message {
         id: format!("msg-{}", uuid::Uuid::new_v4()), conversation_id: id.clone(), sender_id: session.user_id.clone(),
-        sender_name: session.user_id.clone(), msg_type: if is_video { "video" } else { "photo" }.into(),
+        sender_name, msg_type: if is_video { "video" } else { "photo" }.into(),
         original_text: None, original_lang: None, translations: Some(json!({})), media_url: Some(media_url),
         duration_s: None, pinned: false, reply_to_id: None, idempotency_key: None,
         created_at: crate::util::now_ms(),

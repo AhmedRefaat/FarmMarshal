@@ -1,4 +1,4 @@
-# AgriTasks — Master Requirements & Features Reference
+# FarmMarshal — Master Requirements & Features Reference
 
 **Version:** 1.0 · **Date:** 2026-08-25 · **Status:** SINGLE SOURCE OF TRUTH
 All artifacts (mobile app, web client, server-node, server-rust, architecture docs) MUST
@@ -61,13 +61,54 @@ implementation AND resolution — mobile IssueReportScreen + task evidence flow 
 | R10 | Academy (F7) | anonymized case snapshots from closed issues; quizzes w/ server-only keys; exact grading boundary |
 | R11 | Subscriptions (owner plan gates ALL premium options) | 402 upgradeRequired; manual ledger → Visa/MC webhook confirmation |
 | R12 | Extensibility (F4a) | modular monolith; JSONB metadata; plugin adapters for devices/issues/reports; robot conformance spec |
-| R13 | Non-tech usability | Arabic-first RTL; big targets; persona cards at signup; voice over typing; offline outbox |
+| R13 | Non-tech usability | Arabic-first RTL (see R15); big targets; persona cards at signup; voice over typing; offline outbox |
 
 ## R14 — Artifact parity contract
 Mobile (iOS+Android via one Expo binary), web SPA, server-node, server-rust implement THE SAME
 requirement set. Route parity is verified by automated diff; divergences must be listed in
 EVOLUTION_PLAN §11.3 (currently only: Google-OAuth exchange Node-only, UTC leak window).
 
+### R14.1 Surface parity matrix (as built)
+
+| Capability | Web SPA | Mobile | server-node | server-rust |
+|---|---|---|---|---|
+| Farm portfolio (per-farm issue buckets) | `Farms` | `FarmsScreen` | `GET /v2/farms`, `GET /v2/issues` | ✓ |
+| Farm detail + issue event timeline | `FarmDetail` | `FarmDetailScreen` | `GET /v2/issues/:id/events` | ✓ |
+| Per-task audit report | `TaskReport` | `TaskReportScreen` | `GET /tasks/:id/report` | ✓ |
+| Expert directory + consultation pool | `ExpertNetwork` | `ExpertNetworkScreen` | `GET /v2/experts`, `GET /v2/consultations` | ✓ |
+| Consultation detail, choose, rate | `ExpertNetwork` | `ConsultationDetailScreen` | `GET /v2/consultations/:id` | ✓ |
+| Chat (F3) | — (mobile-first) | `ChatScreen` | `/v2/conversations` | ✓ |
+
+## R15 — Language & localization (Arabic-first, Egypt + Gulf)
+
+NORMATIVE DETAIL: **`docs/LOCALIZATION_SPEC.md`**. Summary of the binding requirements:
+
+| ID | Requirement |
+|---|---|
+| R15.1 | Every user-facing surface ships in **Arabic and English**. Arabic is the default locale of a fresh install. Coverage includes screens, modals, toasts, empty states, validation messages, status badges and the browser document title — 0 untranslated strings. |
+| R15.2 | Arabic register is **simplified Modern Standard Arabic**, country-neutral so that Egyptian and GCC users read the same catalogue. Dialect and transliterated English are rejected at review (LOCALIZATION_SPEC §4). |
+| R15.3 | Agricultural, IoT and marketplace terminology follows the normative glossary (LOCALIZATION_SPEC §2). Terms are frozen; changes require a glossary edit first. |
+| R15.4 | **Western digits and the Gregorian calendar everywhere**, enforced by pinning `-u-ca-gregory-nu-latn` on every formatter. A bare `toLocaleDateString('ar')` is a defect because `ar-SA` resolves to the Hijri calendar. |
+| R15.5 | Counts use `Intl.PluralRules`; Arabic's six plural categories (`zero/one/two/few/many/other`) must all be authored where the rule set produces them. |
+| R15.6 | Full RTL: web via `dir=rtl` + CSS logical properties; mobile via `I18nManager`. Directional icons mirror; numbers, Latin identifiers and media controls do not. |
+| R15.7 | Interpolated values of unknown script are wrapped in a bidi isolate (`<bdi>` / FSI‑PDI) to prevent visual reordering of IDs, emails and coordinates. |
+| R15.8 | Sentences are **single catalogue keys with placeholders**. Concatenating translated fragments in code is prohibited — Arabic word order and agreement differ from English. |
+| R15.9 | The locale choice is user-selectable at any time, persisted per device, and applied without data loss. Server APIs stay language-neutral: machine-readable error codes, clients own the wording (LOCALIZATION_SPEC §6). |
+| R15.10 | User-authored content is stored verbatim in the author's language and never auto-translated at rest; F3 translation stays an on-demand, cached, reversible view. |
+
+## R16 — Tenant isolation of the people directory
+
+`GET /users` and `GET /users/:id/stats` return only the caller and users who share at least one
+farm with the caller. The platform `admin` persona is exempt (role administration is
+cross-tenant by definition). Out-of-tenant reads return **404, not 403**, so the response cannot
+be used to enumerate accounts on other farms. Enforced identically in both server trails.
+
 ## Traceability
 Requirement IDs here map to: test IDs (TEST_COVERAGE_TRACEABILITY §1), phases
 (IMPLEMENTATION_PLAN_AND_TESTS), ADRs (EVOLUTION_PLAN §9–10).
+
+## Branding
+The product is **FarmMarshal**. The legacy name "AgriTasks" is retired across code, storage keys
+(`farmmarshal_*`), database roles and documentation. The mark ships as
+`webapp/client/public/logo.png` (web favicon + sign-in + header) and as the Expo
+`icon`/`splash-icon`/`favicon`/`android-icon-*` set under `mobile-app/assets/`.

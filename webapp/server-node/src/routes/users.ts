@@ -19,7 +19,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { User } from '../types.js';
 import { requireRole } from '../auth.js';
-import { getUser, listUsers, ratingStats, insertUser } from '../store.js';
+import { getUser, listUsers, ratingStats, insertUser, listFarmMembers } from '../store.js';
 import { audit } from '../audit.js';
 import {
   isKnownRole,
@@ -53,6 +53,24 @@ function redact(user: User): Omit<User, 'email'> & { email?: string } {
   return rest;
 }
 
+/**
+ * SEC — tenant scope for the directory: the caller plus everyone who shares at
+ * least one farm with them. Without this, an authenticated worker (or an
+ * external network expert, who belongs to no farm at all) could enumerate
+ * every account on the platform.
+ *
+ * Platform `admin` is exempt because role administration operates across
+ * tenants by definition; it is already the most audited role.
+ */
+function visibleUserIds(userId: string): Set<string> {
+  const farms = new Set(listFarmMembers(userId).map((m) => m.farmId));
+  const ids = new Set<string>([userId]);
+  for (const m of listFarmMembers()) {
+    if (farms.has(m.farmId)) ids.add(m.userId);
+  }
+  return ids;
+}
+
 export default async function userRoutes(app: FastifyInstance) {
   /**
    * Directory used by rating pickers and task assignment. Workers get names and
@@ -60,7 +78,9 @@ export default async function userRoutes(app: FastifyInstance) {
    */
   app.get('/users', { preHandler: requireRole() }, async (request) => {
     const session = (request as any).session;
-    const users = listUsers();
+    const users = session?.role === 'admin'
+      ? listUsers()
+      : listUsers().filter((u) => visibleUserIds(session.userId).has(u.id));
     return isPrivilegedRole(session?.role) ? users : users.map(redact);
   });
 
@@ -68,12 +88,13 @@ export default async function userRoutes(app: FastifyInstance) {
   app.get('/users/:id/stats', { preHandler: requireRole() }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const user = getUser(id);
-    if (!user) {
+    const session = (request as any).session;
+    // Out-of-tenant reads are indistinguishable from "no such user".
+    if (!user || (session?.role !== 'admin' && !visibleUserIds(session.userId).has(id))) {
       return reply.code(404).send({ error: 'User not found' });
     }
     // Merge identity with the aggregate star summary for this person.
     const stats = ratingStats(id);
-    const session = (request as any).session;
     return {
       user: isPrivilegedRole(session?.role) ? user : redact(user),
       avgStars: stats.avgStars,

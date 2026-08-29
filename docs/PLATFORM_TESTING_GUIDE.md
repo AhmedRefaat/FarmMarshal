@@ -1,7 +1,7 @@
 # Platform Testing Guide — iOS & Windows (Mobile App + WebApp)
 
 **Version:** 1.0 · **Date:** 2026-08-25
-**Purpose:** exact prerequisites, installs, and step-by-step test procedures for every AgriTasks
+**Purpose:** exact prerequisites, installs, and step-by-step test procedures for every FarmMarshal
 component on iOS and Windows. Follow top-to-bottom per platform; each section ends with the
 expected result so failures are immediately attributable.
 

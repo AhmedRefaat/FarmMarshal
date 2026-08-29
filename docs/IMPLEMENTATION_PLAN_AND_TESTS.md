@@ -1,4 +1,4 @@
-# AgriTasks v2 — Detailed Working Plan & Test Strategy
+# FarmMarshal v2 — Detailed Working Plan & Test Strategy
 
 **Version:** 1.1 · **Date:** 2026-08-25 · **Status:** PLAN (execution started; see phase table)
 
@@ -25,6 +25,7 @@
 | P5 | Tree Registry | ✅ **SHIPPED (server)** — QR-primary identity + GPS-accuracy + relative-code resolution (fixture-tested), lifespan estimator → end-of-life recommendations, tree events timeline. Pending: QR print UI, mobile scan screen | P0 | server* |
 | P6 | Expert Marketplace | ✅ **SHIPPED (server)** — Uber-style apply→credential→admin verification gate, reputation cards, consultations with escrow split (commission/net fixture-tested), 1:1 thread linkage, rating feed. Pending: web admin queue UI, card checkout | P1 | server* |
 | P7 | Learner Academy | ✅ **SHIPPED (server)** — case publication from closed issues (anonymized snapshot), quiz builder with SERVER-ONLY answer keys, exact-boundary grading (89.9 fails @90). Pending: learner mobile screens, certificate generation | P0 (+P6) | server* |
+| P8 | Arabic-first localization | ✅ **DONE** — in-house i18n layer + `ar`/`en` catalogues on both clients, RTL via logical properties (web) and `I18nManager` (mobile), Gregorian/Western-digit formatters, locale switcher, catalogue-parity tests. All 10 web pages + shell and all 13 mobile screens converted. Normative rules in `docs/LOCALIZATION_SPEC.md`. Remaining gate: **L3 native-speaker copy review** | P1–P7 UI surfaces | L1–L6 |
 
 Continuous tracks: usability reviews with real field users each phase; docs updated at ship time
 (per EVOLUTION_PLAN §7); security review before any hardware is attached to real valves.
@@ -126,6 +127,33 @@ Continuous tracks: usability reviews with real field users each phase; docs upda
 6. Academic expert verification path (institutional email/staff ID) inside the F6a review queue;
    "Academic Expert · N yrs" badge; authoring privileges gated on verification.
 
+### P8 — Arabic-first localization (R15)
+
+Normative rules: **`docs/LOCALIZATION_SPEC.md`**. Decisions: ADR-025–ADR-029.
+
+1. **i18n layer per client** (`src/i18n/`): `LocaleProvider` + `useI18n()` exposing
+   `{ locale, setLocale, dir, t, fmt }`. Catalogue lookup, `{{}}` interpolation,
+   `Intl.PluralRules` selection, and formatters pinned to `-u-ca-gregory-nu-latn`.
+   Provider sits **above** the auth provider so the sign-in surface is already localized.
+2. **Catalogues**: `en.ts` (reference key set) and `ar.ts` (default locale), namespaced by
+   surface. Arabic authored to the §2 glossary in simplified MSA; six plural categories where
+   the rule set produces them.
+3. **Web RTL**: rewrite `styles.css` onto CSS logical properties; `LocaleProvider` writes
+   `<html lang>` / `<html dir>` and the document title. Locale switcher in the sidebar and on
+   the Login card.
+4. **Mobile RTL**: `I18nManager.allowRTL/forceRTL` at startup, reload-on-switch dialog,
+   `textAlign:'start'` + `writingDirection` in shared text styles, locale switcher on Login
+   and on both role home screens.
+5. **String sweep**: every page/screen converted — headers, labels, buttons, placeholders,
+   status badges, empty states, confirm dialogs, validation and error copy. Status badges
+   translate through the catalogue, never by title-casing the wire value.
+6. **Error boundary**: clients map HTTP status → localized copy; raw server text only in dev.
+7. **Formatting sweep**: replace every `toLocaleDateString()` / `toLocaleString()` /
+   manual `${n} EGP` with `fmt.*`.
+8. **Parity tests** (`i18n/__tests__`): identical key sets across catalogues; Arabic plural
+   completeness; no bare `toLocale*` left in UI code.
+9. **Native review**: one Egyptian + one Gulf reviewer sign off per LOCALIZATION_SPEC §7 (L3).
+
 ---
 
 ## Test strategy (per phase, mapped to features)
@@ -185,8 +213,17 @@ Continuous tracks: usability reviews with real field users each phase; docs upda
 
 **Cross-cutting security tests**
 - IDOR sweep: authenticated user A requests B's resources by ID → 403/404 everywhere (automated fuzz of all GET-by-id routes).
+- User directory: non-admin `GET /users` returns ONLY farm co-members; `GET /users/:id/stats` for an out-of-tenant id returns **404** (a 403 would confirm the account exists). Admin still sees everyone. Both trails. (R16 / ADR-024)
 - MQTT: device cred cannot publish to another farm's topics.
 - Injection/XSS on comment/annotation text; path traversal on media URLs.
+
+**P8 Localization (test IDs L1–L6, requirement R15)**
+- **L1 catalogue parity**: `ar` and `en` expose an identical key set; a key added to one and not the other fails CI. Arabic plural records supply every category `Intl.PluralRules('ar')` can return.
+- **L2 no literal strings**: no user-facing literal remains in `pages/**` / `screens/**`; enforced by a sweep test over the source.
+- **L3 register review**: native review by an Egyptian and a Gulf reviewer; any dialect or transliteration (LOCALIZATION_SPEC §4) is a blocking finding.
+- **L4 RTL layout**: every screen rendered in `ar` at the largest OS font size — no clipping, no LTR leakage, directional icons mirrored, media controls not mirrored.
+- **L5 formatting**: dates render Gregorian with Western digits in BOTH locales (guards the `ar-SA` Hijri default); currency renders `ج.م` for EGP; counts select the correct Arabic plural category for 0/1/2/3/11/100.
+- **L6 bidi**: Arabic sentences embedding Latin ids/emails/coordinates render in the intended order (isolation applied); verified on task ids, farm ids and GPS pairs.
 
 ### Definition of Done (every phase)
 1. All new endpoints covered by contract + integration tests; CI green.

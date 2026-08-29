@@ -1,9 +1,9 @@
 {
-  "name": "agritasks-server-node",
+  "name": "farmmarshal-server-node",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "AgriTasks REST API — Trail-2 (Node.js + Fastify + TypeScript)",
+  "description": "FarmMarshal REST API — Trail-2 (Node.js + Fastify + TypeScript)",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",

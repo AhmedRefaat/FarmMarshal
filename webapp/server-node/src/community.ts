@@ -31,6 +31,8 @@
 import { randomUUID } from 'node:crypto';
 import type {
   Consultation,
+  ConsultationResponse,
+  Conversation,
   ExpertProfile,
   LearningCase,
   Quiz,
@@ -41,6 +43,7 @@ import type {
 } from './types.js';
 import {
   academyStore,
+  chatStore,
   getIssueById,
   marketStore,
   videoStore,
@@ -204,8 +207,15 @@ export function postConsultation(input: {
  * Responder submits an answer. GATE (Uber-style): only VERIFIED experts with
  * reputation ≥ configured floor may answer paid requests.
  */
-export function respondToConsultation(consultationId: string, responderId: string, answer: string): void {
+export function respondToConsultation(
+  consultationId: string,
+  responderId: string,
+  answer: string,
+): ConsultationResponse {
   const c = requireConsultation(consultationId);
+  if (c.status === 'chosen' || c.status === 'settled') {
+    throw new CommunityError('bad_request', 'consultation is already settled');
+  }
   const expert = [...marketStore.experts.values()].find((e) => e.userId === responderId);
   if (!expert || expert.status !== 'verified') {
     throw new CommunityError('forbidden', 'only VERIFIED experts may respond');
@@ -213,7 +223,7 @@ export function respondToConsultation(consultationId: string, responderId: strin
   if (expert.avgStars > 0 && expert.avgStars < 2) {
     throw new CommunityError('forbidden', 'reputation below minimum threshold');
   }
-  const r = {
+  const r: ConsultationResponse = {
     id: `res-${randomUUID()}`,
     consultationId,
     responderId,
@@ -222,7 +232,32 @@ export function respondToConsultation(consultationId: string, responderId: strin
     createdAt: Date.now(),
   };
   marketStore.responses.set(r.id, r);
+
+  // F6b: while the request is open, requester + every responder share ONE group
+  // thread so the case can be discussed before a winner is picked.
+  const group = ensureGroupConversation(c);
+  if (!group.memberIds.includes(responderId)) group.memberIds.push(responderId);
+
   log.info('response submitted', { consultationId, responderId });
+  return r;
+}
+
+/** Group discussion thread for an open consultation, created on first response. */
+function ensureGroupConversation(c: Consultation): Conversation {
+  const existing = c.groupConversationId ? chatStore.conversations.get(c.groupConversationId) : undefined;
+  if (existing) return existing;
+  const conv: Conversation = {
+    id: `cv-${randomUUID()}`,
+    kind: 'consultation',
+    consultationId: c.id,
+    memberIds: [c.requesterId],
+    createdBy: c.requesterId,
+    title: c.question.slice(0, 60),
+    createdAt: Date.now(),
+  };
+  chatStore.conversations.set(conv.id, conv);
+  c.groupConversationId = conv.id;
+  return conv;
 }
 
 /**
@@ -247,15 +282,20 @@ export function chooseResponse(consultationId: string, responseId: string): {
   resp.netPayoutEgp = net;
   resp.payoutStatus = 'pending';
 
-  // F6b: dedicated direct thread between requester and chosen responder.
-  const conv = {
+  // F6b: dedicated direct thread between requester and chosen responder. It is
+  // PERSISTED in the chat store, otherwise the promised chat window has no
+  // conversation to open.
+  const conv: Conversation = {
     id: `cv-${randomUUID()}`,
-    kind: 'direct' as const,
+    kind: 'direct',
     consultationId,
     memberIds: [c.requesterId, resp.responderId],
     createdBy: c.requesterId,
+    title: c.question.slice(0, 60),
     createdAt: Date.now(),
   };
+  chatStore.conversations.set(conv.id, conv);
+  resp.conversationId = conv.id;
   marketStore.responses.set(responseId, resp);
 
   // Reputation bookkeeping on the expert card.
@@ -266,7 +306,6 @@ export function chooseResponse(consultationId: string, responseId: string): {
     expert.totalEarnedEgp = Math.round((expert.totalEarnedEgp + net) * 100) / 100;
   }
   log.info('response chosen', { consultationId, responseId, net, commission });
-  void conv;
   return { consultation: c, conversationId: conv.id, netPayoutEgp: net };
 }
 

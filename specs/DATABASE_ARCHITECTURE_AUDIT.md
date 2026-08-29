@@ -1,4 +1,4 @@
-# AgriTasks — Database Architecture Audit
+# FarmMarshal — Database Architecture Audit
 
 **Audit date:** 2026-08-26
 **Editorial review date:** 2026-08-27 — see `specs/AUDIT_DOCUMENT_REVIEW_LOG.md`
@@ -29,7 +29,7 @@
 
 ## 1. Executive summary
 
-**AgriTasks has no database.** Not an unconfigured one, not a misconfigured one —
+**FarmMarshal has no database.** Not an unconfigured one, not a misconfigured one —
 none. There is no driver dependency in either backend, no connection string, no
 pool, no migration tool, and no repository layer. The single SQL file in the
 repository has never been executed and cannot be, because it depends on an
@@ -445,7 +445,7 @@ The result is **robust**, but it is honest to state exactly what would change it
   criteria where it scores 1–2.
 - **The only scenario that flips the result:** if transactional consistency,
   multi-tenancy, relational modelling, reporting, and payments were *all* dropped
-  to weight 2 — which would mean AgriTasks is not a multi-tenant farm-management
+  to weight 2 — which would mean FarmMarshal is not a multi-tenant farm-management
   platform with a ledger. At that point Firebase wins on speed to market.
 - **Distributed SQL overtakes PostgreSQL** only if scalability and availability
   weights rise above ~9 *and* operational complexity falls below ~3, i.e. a funded

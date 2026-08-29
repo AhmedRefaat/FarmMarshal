@@ -57,6 +57,9 @@ const entries: FinanceEntry[] = [
   { id: 'fe-1', farmId: 'f-1', type: 'expense', category: 'seeds', amount: 4200, currency: 'EGP', note: 'Wheat seed batch', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
   { id: 'fe-2', farmId: 'f-1', type: 'expense', category: 'labor', amount: 1500, currency: 'EGP', note: 'Weeding crew day rate', createdById: 'u-mod', createdAt: Date.now() - 2 * 86400e3 },
   { id: 'fe-3', farmId: 'f-1', type: 'income', category: 'harvest_sale', amount: 18000, currency: 'EGP', note: 'Tomato sale to market', createdById: 'u-owner', createdAt: Date.now() - 1 * 86400e3 },
+  { id: 'fe-4', farmId: 'f-2', type: 'expense', category: 'fertilizer', amount: 9800, currency: 'EGP', note: 'Foliar micronutrients — spring flush', createdById: 'u-mod', createdAt: Date.now() - 20 * 86400e3 },
+  { id: 'fe-5', farmId: 'f-2', type: 'income', category: 'harvest_sale', amount: 64000, currency: 'EGP', note: 'Navel orange first pick', createdById: 'u-owner', createdAt: Date.now() - 6 * 86400e3 },
+  { id: 'fe-6', farmId: 'f-3', type: 'expense', category: 'equipment', amount: 15500, currency: 'EGP', note: 'Windbreak posts and netting', createdById: 'u-mod', createdAt: Date.now() - 5 * 86400e3 },
 ];
 
 /**

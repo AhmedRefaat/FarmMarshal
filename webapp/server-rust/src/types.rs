@@ -414,6 +414,10 @@ pub struct ExpertProfile {
     pub user_id: String,
     pub institution: Option<String>,
     pub years_exp: Option<f64>,
+    /// Home country — part of the public reputation card a requester compares.
+    pub country: Option<String>,
+    /// Declared fields of expertise, shown on the same card.
+    pub specializations: Vec<String>,
     /// pending → verified | rejected | suspended (admin KYC gate).
     pub status: String,
     #[serde(rename = "avgStars")]
@@ -439,6 +443,9 @@ pub struct Consultation {
     pub status: String, // open→chosen→settled (+disputed)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chosen_response_id: Option<String>,
+    /// F6b group thread shared by requester + every responder while OPEN.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_conversation_id: Option<String>,
     pub language: String,
     pub created_at: u64,
 }
@@ -454,6 +461,11 @@ pub struct ConsultationResponse {
     pub rating_stars: Option<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub net_payout_egp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commission_amount: Option<f64>,
+    /// F6b 1:1 thread, created when this answer is chosen.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation_id: Option<String>,
     pub payout_status: String, // none|pending|paid
     pub created_at: u64,
 }

@@ -1,4 +1,4 @@
-# PostgreSQL Schema Blueprint — AgriTasks
+# PostgreSQL Schema Blueprint — FarmMarshal
 
 **Document type:** Design and planning. **No executable DDL.**
 **Date:** 2026-08-27

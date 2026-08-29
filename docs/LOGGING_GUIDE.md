@@ -1,4 +1,4 @@
-# AgriTasks — Logging Guide (dev vs customer vs off)
+# FarmMarshal — Logging Guide (dev vs customer vs off)
 
 **Owner requirement:** see the app's logs, enable/disable them overall, and separate
 *customer* logging from *developer* logging. This guide is the single reference.

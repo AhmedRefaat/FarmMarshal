@@ -292,11 +292,16 @@ describe('SEC-C04 / SEC-C05 — finance tenant authorization', () => {
   });
 
   it('an unscoped read returns only the caller\'s farms', async () => {
+    const directory = await app.inject({ method: 'GET', url: '/farms', headers: bearer(ownerToken) });
+    const mine = new Set((directory.json() as Array<{ id: string }>).map((f) => f.id));
+
     const res = await app.inject({ method: 'GET', url: '/finances', headers: bearer(ownerToken) });
     expect(res.statusCode).toBe(200);
     const rows = res.json() as Array<{ farmId: string }>;
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((r) => r.farmId === 'f-1')).toBe(true);
+    // Every row belongs to a farm the caller is actually bound to.
+    expect(rows.every((r) => mine.has(r.farmId))).toBe(true);
+    expect(rows.some((r) => r.farmId === OTHER_FARM)).toBe(false);
   });
 
   it('a user cannot write to another farm\'s ledger', async () => {
@@ -376,9 +381,19 @@ describe('SEC-C04 / SEC-C05 — finance tenant authorization', () => {
   });
 
   it('the farm directory exposes only the caller\'s farms', async () => {
-    const res = await app.inject({ method: 'GET', url: '/farms', headers: bearer(workerToken) });
-    expect(res.statusCode).toBe(200);
-    expect((res.json() as any[]).every((f) => f.id === 'f-1')).toBe(true);
+    const worker = await app.inject({ method: 'GET', url: '/farms', headers: bearer(workerToken) });
+    expect(worker.statusCode).toBe(200);
+    const workerFarms = (worker.json() as Array<{ id: string }>).map((f) => f.id);
+
+    const owner = await app.inject({ method: 'GET', url: '/farms', headers: bearer(ownerToken) });
+    const ownerFarms = (owner.json() as Array<{ id: string }>).map((f) => f.id);
+
+    // The worker sees his own assignments and nothing more: strictly fewer
+    // farms than the owner of the same tenant, and never a farm he is not in.
+    expect(workerFarms).toContain('f-1');
+    expect(workerFarms.length).toBeLessThan(ownerFarms.length);
+    expect(workerFarms).not.toContain(OTHER_FARM);
+    expect(workerFarms.every((id) => ownerFarms.includes(id))).toBe(true);
   });
 });
 

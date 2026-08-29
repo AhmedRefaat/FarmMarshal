@@ -1,4 +1,4 @@
-# AgriTasks v2 — Requirements Analysis & Feature Decomposition
+# FarmMarshal v2 — Requirements Analysis & Feature Decomposition
 
 **Version:** 1.0 · **Date:** 2026-08-25 · **Status:** PLANNING (no implementation yet)
 

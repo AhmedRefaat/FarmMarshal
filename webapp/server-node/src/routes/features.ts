@@ -87,7 +87,9 @@ import {
 import {
   academyStore,
   getDevice,
+  getExpertByUser,
   getIssueById,
+  getUser,
   listFarmMembers,
   getTreeByQr,
   listDevices,
@@ -103,6 +105,17 @@ import {
 import { chatStore } from '../store.js';
 
 const log = makeLogger('features');
+
+/** Responses to one consultation, oldest first (the recommendation pool). */
+function responsesOf(consultationId: string) {
+  return [...marketStore.responses.values()]
+    .filter((r) => r.consultationId === consultationId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+function hasResponded(consultationId: string, userId: string): boolean {
+  return responsesOf(consultationId).some((r) => r.responderId === userId);
+}
 
 // ---------------------------------------------------------------------------
 // Live WS registry (P1). Production: Redis pub/sub across instances.
@@ -166,7 +179,11 @@ export default async function featureRoutes(app: FastifyInstance) {
       const msg = await sendMessage({
         conversationId: id,
         senderId: (request as any).session.userId,
-        senderName: (request as any).session.userId, // profiles join later
+        // Denormalised display name: chat history must stay readable without a
+        // second lookup, and the id alone is meaningless in the UI.
+        senderName:
+          getUser((request as any).session.userId)?.name ??
+          (request as any).session.userId,
         type: b.type ?? 'text',
         originalText: b.text,
         mediaUrl: b.mediaUrl,
@@ -622,6 +639,20 @@ export default async function featureRoutes(app: FastifyInstance) {
     }
   });
 
+  /**
+   * Public expert directory — the reputation cards a requester compares before
+   * choosing an answer. Only VERIFIED experts are listed; pending applications
+   * stay private to the applicant and the admin queue.
+   */
+  app.get('/v2/experts', { preHandler: requirePermission() }, async () =>
+    [...marketStore.experts.values()]
+      .filter((e) => e.status === 'verified')
+      .map((e) => ({ ...e, name: getUser(e.userId)?.name ?? 'Expert' })));
+
+  /** The caller's own expert card (null when they never applied). */
+  app.get('/v2/experts/me', { preHandler: requirePermission() }, async (request) =>
+    getExpertByUser((request as any).session.userId) ?? null);
+
   app.post('/v2/consultations', { preHandler: requirePermission(), }, async (request, reply) => {
     const b = request.body as any;
     if (!b?.question || !b?.bountyEgp || !b?.language) return reply.code(400).send({ error: 'question, bountyEgp, language required' });
@@ -631,12 +662,93 @@ export default async function featureRoutes(app: FastifyInstance) {
     }));
   });
 
+  /**
+   * The consultation POOL. Public requests are visible to every authenticated
+   * user so a global expert can find work; targeted ones stay with the two
+   * parties involved.
+   */
+  app.get('/v2/consultations', { preHandler: requirePermission() }, async (request) => {
+    const userId = (request as any).session.userId as string;
+    return [...marketStore.consultations.values()]
+      .filter((c) => c.scope === 'public' || c.requesterId === userId || hasResponded(c.id, userId))
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((c) => ({
+        ...c,
+        requesterName: getUser(c.requesterId)?.name ?? 'Requester',
+        responseCount: responsesOf(c.id).length,
+        mine: c.requesterId === userId,
+        answered: hasResponded(c.id, userId),
+      }));
+  });
+
+  /**
+   * Full consultation view: the request, every recommendation with its expert
+   * card, the payout split once settled, and the thread ids the UI opens.
+   * Payout amounts are shown to the requester and to the owning responder only.
+   */
+  app.get('/v2/consultations/:id', { preHandler: requirePermission() }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = (request as any).session.userId as string;
+    const c = marketStore.consultations.get(id);
+    if (!c) return reply.code(404).send({ error: 'consultation not found' });
+    if (c.scope !== 'public' && c.requesterId !== userId && !hasResponded(id, userId)) {
+      return reply.code(404).send({ error: 'consultation not found' });
+    }
+    const isRequester = c.requesterId === userId;
+    // Thread ids are only meaningful to members: reading a thread you are not
+    // in returns 404, so handing the id out would make the UI render a dead
+    // chat window (and needlessly advertise that the thread exists).
+    const isMemberOf = (conversationId?: string) =>
+      !!conversationId &&
+      !!chatStore.conversations.get(conversationId)?.memberIds.includes(userId);
+
+    return {
+      consultation: {
+        ...c,
+        requesterName: getUser(c.requesterId)?.name ?? 'Requester',
+        groupConversationId: isMemberOf(c.groupConversationId)
+          ? c.groupConversationId
+          : undefined,
+      },
+      responses: responsesOf(id).map((r) => {
+        const expert = getExpertByUser(r.responderId);
+        const visibleMoney = isRequester || r.responderId === userId;
+        return {
+          id: r.id,
+          consultationId: r.consultationId,
+          responderId: r.responderId,
+          responderName: getUser(r.responderId)?.name ?? 'Expert',
+          answer: r.answer,
+          conversationId: isMemberOf(r.conversationId) ? r.conversationId : undefined,
+          ratingStars: r.ratingStars,
+          payoutStatus: r.payoutStatus,
+          commissionAmount: visibleMoney ? r.commissionAmount : undefined,
+          netPayoutEgp: visibleMoney ? r.netPayoutEgp : undefined,
+          createdAt: r.createdAt,
+          expert: expert
+            ? {
+                avgStars: expert.avgStars,
+                answersCount: expert.answersCount,
+                country: expert.country,
+                institution: expert.institution,
+                specializations: expert.specializations,
+                yearsExp: expert.yearsExp,
+              }
+            : undefined,
+        };
+      }),
+      isRequester,
+      canRespond: getExpertByUser(userId)?.status === 'verified' && !isRequester && !hasResponded(id, userId),
+    };
+  });
+
   app.post('/v2/consultations/:id/responses', { preHandler: requirePermission() }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const b = request.body as { answer?: string };
+    if (!b?.answer?.trim()) return reply.code(400).send({ error: 'answer required' });
     try {
-      respondToConsultation(id, (request as any).session.userId, b.answer ?? '');
-      return reply.code(201).send({ ok: true });
+      const created = respondToConsultation(id, (request as any).session.userId, b.answer.trim());
+      return reply.code(201).send({ ok: true, id: created.id });
     } catch (e) {
       return mapCommunityError(e, reply);
     }
@@ -645,8 +757,13 @@ export default async function featureRoutes(app: FastifyInstance) {
   app.patch('/v2/consultations/:id/choose', { preHandler: requirePermission() }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const b = request.body as { responseId?: string };
+    if (!b?.responseId) return reply.code(400).send({ error: 'responseId required' });
+    // Only the person who funded the bounty may release it.
+    if (marketStore.consultations.get(id)?.requesterId !== (request as any).session.userId) {
+      return reply.code(403).send({ error: 'only the requester may choose a response' });
+    }
     try {
-      const result = chooseResponse(id, b.responseId!);
+      const result = chooseResponse(id, b.responseId);
       audit({
         actorId: (request as any).session.userId, persona: (request as any).session.role,
         action: 'consultation.choose', targetType: 'consultation', targetId: id,
@@ -662,6 +779,9 @@ export default async function featureRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const b = request.body as { stars?: number };
     if (!b.stars || b.stars < 1 || b.stars > 5) return reply.code(400).send({ error: 'stars 1..5 required' });
+    if (marketStore.consultations.get(id)?.requesterId !== (request as any).session.userId) {
+      return reply.code(403).send({ error: 'only the requester may rate the chosen answer' });
+    }
     try {
       return { avgStars: rateResponse(id, b.stars) };
     } catch (e) {

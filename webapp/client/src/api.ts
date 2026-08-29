@@ -1,5 +1,5 @@
 /**
- * api.ts — typed HTTP client for the AgriTasks REST API.
+ * api.ts — typed HTTP client for the FarmMarshal REST API.
  * ---------------------------------------------------------------------------
  * All network access funnels through `request()`:
  *   • prefixes the API base URL (/api → Vite proxy → server)
@@ -11,7 +11,7 @@
 const BASE = '/api';
 
 function token(): string | null {
-  return localStorage.getItem('agritasks_token');
+  return localStorage.getItem('farmmarshal_token');
 }
 
 /**
@@ -25,6 +25,30 @@ export function buildHeaders(authToken: string | null): Record<string, string> {
   };
 }
 
+/** Error carrying the HTTP status so the UI can map it to localized copy. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
+ * The locale the user is currently reading, read straight from storage rather
+ * than from React context so this module stays framework-free. The API itself
+ * is language-neutral (ADR-029); the header exists for future server-rendered
+ * artefacts such as emailed PDFs and for request-log diagnostics.
+ */
+function acceptLanguage(): string {
+  try {
+    return localStorage.getItem('farmmarshal_locale') === 'en'
+      ? 'en-GB, en;q=0.9, ar;q=0.8'
+      : 'ar-EG, ar;q=0.9, en;q=0.8';
+  } catch {
+    return 'ar-EG, ar;q=0.9, en;q=0.8';
+  }
+}
+
 /**
  * Generic JSON request helper used by every endpoint function below.
  * @param path   route beginning with '/'
@@ -33,14 +57,39 @@ export function buildHeaders(authToken: string | null): Record<string, string> {
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
-    headers: { ...buildHeaders(token()), ...(opts.headers ?? {}) },
+    headers: {
+      ...buildHeaders(token()),
+      'accept-language': acceptLanguage(),
+      ...(opts.headers ?? {}),
+    },
   });
   if (!res.ok) {
-    // Surface server-provided error text for inline UI display.
+    // A 401 on any authenticated call means the stored token is no longer
+    // accepted (expired, or the server was restarted and re-minted its dev
+    // signing key). Keeping the cached user makes the app *look* signed in
+    // while every request fails, so drop the session and return to login.
+    // The login call itself is exempt: there, 401 means "wrong password".
+    if (res.status === 401 && path !== '/auth/login') {
+      endSession();
+    }
+    // The server's text is developer-facing English; it is carried for logs
+    // while the UI renders its own localized message keyed off `status`.
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as any).error ?? `Request failed (${res.status})`);
+    throw new ApiError(
+      (body as any).error ?? `Request failed (${res.status})`,
+      res.status
+    );
   }
   return res.json() as Promise<T>;
+}
+
+/** Clear the persisted session and send the user back to the login screen. */
+function endSession(): void {
+  localStorage.removeItem('farmmarshal_token');
+  localStorage.removeItem('farmmarshal_user');
+  if (window.location.pathname !== '/login') {
+    window.location.replace('/login');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -132,4 +181,100 @@ export const api = {
   /** Append a ledger row. */
   addFinance: (body: Record<string, unknown>) =>
     request<any>('/finances', { method: 'POST', body: JSON.stringify(body) }),
+
+  // ---- Farm portfolio + universal issue workflow -------------------------
+
+  /** Full farm records the caller is bound to (owner OR member). */
+  v2Farms: () => request<import('./types').Farm[]>('/v2/farms'),
+
+  /**
+   * Issues of ONE farm. `farmId` is mandatory by design: an unscoped read
+   * collapses the farm-scoped authorization check to admin-only, so the UI
+   * fans out per farm instead.
+   */
+  issues: (farmId: string) =>
+    request<import('./types').Issue[]>(
+      `/v2/issues?farmId=${encodeURIComponent(farmId)}`
+    ),
+
+  issueEvents: (issueId: string) =>
+    request<import('./types').IssueEvent[]>(`/v2/issues/${issueId}/events`),
+
+  /** Single-call aggregate behind the per-task report page. */
+  taskReport: (id: string) =>
+    request<import('./types').TaskReport>(`/tasks/${id}/report`),
+
+  // ---- Agriculture expert network (marketplace) --------------------------
+
+  consultations: () =>
+    request<import('./types').Consultation[]>('/v2/consultations'),
+
+  consultation: (id: string) =>
+    request<import('./types').ConsultationDetail>(`/v2/consultations/${id}`),
+
+  postConsultation: (body: {
+    question: string;
+    bountyEgp: number;
+    language: string;
+    scope?: 'public' | 'targeted';
+  }) =>
+    request<import('./types').Consultation>('/v2/consultations', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  respondConsultation: (id: string, answer: string) =>
+    request<{ ok: true; id: string }>(`/v2/consultations/${id}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ answer }),
+    }),
+
+  /** Requester-only: releases the bounty and opens the 1:1 expert thread. */
+  chooseResponse: (id: string, responseId: string) =>
+    request<{
+      consultation: import('./types').Consultation;
+      conversationId?: string;
+      netPayoutEgp?: number;
+    }>(`/v2/consultations/${id}/choose`, {
+      method: 'PATCH',
+      body: JSON.stringify({ responseId }),
+    }),
+
+  rateConsultation: (id: string, stars: number) =>
+    request<{ avgStars: number }>(`/v2/consultations/${id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ stars }),
+    }),
+
+  /** Verified experts available to the network. */
+  experts: () => request<import('./types').ExpertProfile[]>('/v2/experts'),
+
+  /** The caller's own expert profile, or null if they are not an expert. */
+  myExpert: () =>
+    request<import('./types').ExpertProfile | null>('/v2/experts/me'),
+
+  // ---- Chat --------------------------------------------------------------
+
+  chatInbox: () => request<any[]>('/v2/chat/inbox'),
+
+  chatMessages: (conversationId: string) =>
+    request<import('./types').ChatMessage[]>(
+      `/v2/chat/${conversationId}/messages`
+    ),
+
+  sendChat: (conversationId: string, text: string) =>
+    request<import('./types').ChatMessage>(
+      `/v2/chat/${conversationId}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'text',
+          text,
+          // Retry-safe: the server de-duplicates on this key (exactly-once).
+          idempotencyKey: `${conversationId}-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}`,
+        }),
+      }
+    ),
 };
