@@ -35,15 +35,17 @@ import type {
  * sentence — Arabic cannot safely concatenate sentence fragments.
  */
 function ExpertBadge({ card }: { card: NonNullable<ConsultationDetail['responses'][number]['expert']> }) {
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const facts = [
     t('expert.stars', { stars: fmt.number(card.avgStars) }),
     t('expert.answers', { count: card.answersCount }),
-    card.institution && t('expert.institution', { name: card.institution }),
-    card.country && t('expert.country', { name: card.country }),
+    card.institution && t('expert.institution', { name: tc(card.institution) }),
+    card.country && t('expert.country', { name: tc(card.country) }),
     card.yearsExp ? t('expert.years', { count: card.yearsExp }) : '',
     card.specializations?.length
-      ? t('expert.specializations', { list: card.specializations.join('، ') })
+      ? t('expert.specializations', {
+          list: card.specializations.map((s) => tc(s)).join('، '),
+        })
       : '',
   ].filter(Boolean);
   return <p className="muted">⭐ {facts.join(' · ')}</p>;
@@ -52,7 +54,7 @@ function ExpertBadge({ card }: { card: NonNullable<ConsultationDetail['responses
 /** Live-ish chat window over one conversation id (polls while mounted). */
 function ChatPanel({ conversationId, title }: { conversationId: string; title: string }) {
   const { user } = useAuth();
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -103,10 +105,10 @@ function ChatPanel({ conversationId, title }: { conversationId: string; title: s
             key={m.id}
             className={`bubble ${m.senderId === user?.id ? 'mine' : ''}`}
           >
-            <b><bdi>{m.senderName}</bdi></b>
+            <b><bdi>{tc(m.senderName)}</bdi></b>
             {/* User-authored text can be in either script — isolate it so one
                 Latin message cannot flip the layout of an Arabic thread. */}
-            <div><bdi>{m.originalText}</bdi></div>
+            <div><bdi>{tc(m.originalText)}</bdi></div>
             <span className="muted">{fmt.time(m.createdAt)}</span>
           </div>
         ))}
@@ -127,7 +129,7 @@ function ChatPanel({ conversationId, title }: { conversationId: string; title: s
 }
 
 export default function ExpertNetwork() {
-  const { t, fmt, locale } = useI18n();
+  const { t, tc, fmt, locale } = useI18n();
   const describeError = useErrorMessage();
   const [pool, setPool] = useState<Consultation[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -208,8 +210,8 @@ export default function ExpertNetwork() {
                   onClick={() => openCase(c.id)}
                 >
                   <bdi>
-                    {c.question.slice(0, 70)}
-                    {c.question.length > 70 ? '…' : ''}
+                    {tc(c.question).slice(0, 70)}
+                    {tc(c.question).length > 70 ? '…' : ''}
                   </bdi>
                 </button>
                 <div className="muted">
@@ -219,7 +221,7 @@ export default function ExpertNetwork() {
                   ·{' '}
                   {t('expert.caseMeta', {
                     bounty: fmt.currency(c.bountyEgp ?? 0),
-                    requester: c.requesterName ?? t('common.none'),
+                    requester: tc(c.requesterName) ?? t('common.none'),
                   })}{' '}
                   · {t('expert.recommendationCount', { count: c.responseCount ?? 0 })}
                   {c.mine && ` · ${t('expert.yours')}`}
@@ -279,7 +281,7 @@ export default function ExpertNetwork() {
           {detail && (
             <>
               <h2>{t('expert.case')}</h2>
-              <p className="desc"><bdi>{detail.consultation.question}</bdi></p>
+              <p className="desc"><bdi>{tc(detail.consultation.question)}</bdi></p>
               <p className="muted">
                 <span className="badge">
                   {t(`consult.status.${detail.consultation.status}` as MessageKey)}
@@ -288,7 +290,7 @@ export default function ExpertNetwork() {
                 {t('expert.caseTerms', {
                   bounty: fmt.currency(detail.consultation.bountyEgp ?? 0),
                   pct: fmt.number(detail.consultation.platformCommissionPct),
-                  requester: detail.consultation.requesterName ?? t('common.none'),
+                  requester: tc(detail.consultation.requesterName) ?? t('common.none'),
                 })}
               </p>
 
@@ -304,12 +306,12 @@ export default function ExpertNetwork() {
                     key={r.id}
                     className={`issue-card ${isChosen ? 'chosen' : ''}`}
                   >
-                    <b><bdi>{r.responderName}</bdi></b>
+                    <b><bdi>{tc(r.responderName)}</bdi></b>
                     {isChosen && (
                       <span className="chip green">{t('expert.chosen')}</span>
                     )}
                     {r.expert && <ExpertBadge card={r.expert} />}
-                    <p className="desc"><bdi>{r.answer}</bdi></p>
+                    <p className="desc"><bdi>{tc(r.answer)}</bdi></p>
                     {/* Money is present only when the server disclosed it. */}
                     {r.netPayoutEgp !== undefined && (
                       <p className="muted">
@@ -403,7 +405,7 @@ export default function ExpertNetwork() {
                 <ChatPanel
                   conversationId={chosen.conversationId}
                   title={t('expert.privateThread', {
-                    name: chosen.responderName,
+                    name: tc(chosen.responderName),
                   })}
                 />
               )}

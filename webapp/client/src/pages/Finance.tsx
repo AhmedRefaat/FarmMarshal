@@ -42,7 +42,7 @@ interface Entry {
 }
 
 export default function Finance() {
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [farmId, setFarmId] = useState(''); // '' = all farms
@@ -115,7 +115,7 @@ export default function Finance() {
             className={farmId === f.id ? 'chip active' : 'chip'}
             onClick={() => setFarmId(f.id)}
           >
-            <bdi>{f.name}</bdi>
+            <bdi>{tc(f.name)}</bdi>
           </button>
         ))}
       </div>
@@ -165,7 +165,7 @@ export default function Finance() {
         />
         <select value={form.farmId} onChange={(e) => setForm({ ...form, farmId: e.target.value })}>
           {farms.map((f) => (
-            <option key={f.id} value={f.id}>{f.name}</option>
+            <option key={f.id} value={f.id}>{tc(f.name)}</option>
           ))}
         </select>
         <button className="green" onClick={addEntry}>{t('common.add')}</button>
@@ -192,7 +192,7 @@ export default function Finance() {
                   : `🟢 ${t('finance.in')}`}
               </td>
               <td>{t(`finance.category.${e.category}` as MessageKey)}</td>
-              <td><bdi>{e.note ?? t('common.none')}</bdi></td>
+              <td><bdi>{tc(e.note) ?? t('common.none')}</bdi></td>
               <td style={{ fontWeight: 700 }}>
                 {/* Sign + amount form one isolated run so the minus stays glued
                     to its number when the row renders right-to-left. */}

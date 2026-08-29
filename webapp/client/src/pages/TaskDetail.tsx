@@ -23,7 +23,7 @@ import type { Comment, Task } from '../types';
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
 
   const [task, setTask] = useState<Task | null>(null);
@@ -107,12 +107,12 @@ export default function TaskDetail() {
       {/* 1 ── Header */}
       <div className="pagehead">
         <p className="eyebrow">{t('taskDetail.eyebrow')}</p>
-        <h1><bdi>{task.title}</bdi></h1>
+        <h1><bdi>{tc(task.title)}</bdi></h1>
       </div>
       <span className={`badge b-${task.status}`}>
         {t(`status.${task.status}` as MessageKey)}
       </span>
-      <p className="desc"><bdi>{task.description}</bdi></p>
+      <p className="desc"><bdi>{tc(task.description)}</bdi></p>
       <p className="muted">
         📍{' '}
         {t('task.location', {
@@ -123,7 +123,7 @@ export default function TaskDetail() {
         })}
       </p>
       {task.reviewNote && (
-        <p className="muted">{t('task.reviewNote', { note: task.reviewNote })}</p>
+        <p className="muted">{t('task.reviewNote', { note: tc(task.reviewNote) })}</p>
       )}
       <p>
         {/* Full audit trail: reporter, assignee, milestones, issue workflow */}
@@ -179,12 +179,12 @@ export default function TaskDetail() {
       <ul className="thread">
         {comments.map((c) => (
           <li key={c.id}>
-            <b><bdi>{c.authorName}</bdi></b>{' '}
+            <b><bdi>{tc(c.authorName)}</bdi></b>{' '}
             <span className="muted">
               ({t(`role.${c.authorRole}` as MessageKey)}) ·{' '}
               {fmt.time(c.createdAt)}
             </span>
-            {c.text && <p><bdi>{c.text}</bdi></p>}
+            {c.text && <p><bdi>{tc(c.text)}</bdi></p>}
             {/* Voice-note player when this comment carries audio */}
             {c.audioUrl && <audio controls src={c.audioUrl} />}
           </li>

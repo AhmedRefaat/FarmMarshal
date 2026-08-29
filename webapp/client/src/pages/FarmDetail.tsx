@@ -30,7 +30,7 @@ const COLUMNS: {
 
 export default function FarmDetail() {
   const { id = '' } = useParams();
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [farm, setFarm] = useState<Farm | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -78,7 +78,7 @@ export default function FarmDetail() {
       </p>
       <div className="pagehead">
         <p className="eyebrow">{t('farmDetail.eyebrow')}</p>
-        <h1><bdi>{farm.name}</bdi></h1>
+        <h1><bdi>{tc(farm.name)}</bdi></h1>
       </div>
 
       <figure className="photo hero-strip">
@@ -102,12 +102,12 @@ export default function FarmDetail() {
                 {items.map((issue) => (
                   <div className="issue-card" key={issue.id}>
                     <button className="link-btn" onClick={() => toggle(issue.id)}>
-                      <bdi>{issue.title}</bdi>
+                      <bdi>{tc(issue.title)}</bdi>
                     </button>
                     <p className="muted">
                       {t('farmDetail.issueMeta', {
-                        kind: issue.kind,
-                        severity: issue.severity,
+                        kind: tc(issue.kind),
+                        severity: tc(issue.severity),
                       })}{' '}
                       <span className="badge">
                         {t(`stage.${issue.stage}` as MessageKey)}
@@ -136,7 +136,7 @@ export default function FarmDetail() {
                                 when: fmt.dateTime(e.at),
                               })}
                             </span>
-                            {e.note && <div className="desc"><bdi>{e.note}</bdi></div>}
+                            {e.note && <div className="desc"><bdi>{tc(e.note)}</bdi></div>}
                           </li>
                         ))}
                         {(events[issue.id] ?? []).length === 0 && (
@@ -173,7 +173,7 @@ export default function FarmDetail() {
               <tr key={row.id}>
                 <td>
                   <Link to={`/tasks/${row.id}`}>
-                    <bdi>{row.title}</bdi>
+                    <bdi>{tc(row.title)}</bdi>
                   </Link>
                 </td>
                 <td>

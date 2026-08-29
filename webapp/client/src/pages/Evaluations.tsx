@@ -22,7 +22,7 @@ interface Row {
 
 export default function Evaluations() {
   const { user: me } = useAuth();
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState('');
@@ -99,7 +99,7 @@ export default function Evaluations() {
         <tbody>
           {rows.map((r) => (
             <tr key={r.user.id}>
-              <td><bdi>{r.user.name}</bdi></td>
+              <td><bdi>{tc(r.user.name)}</bdi></td>
               <td>{t(`role.${r.user.role}` as MessageKey)}</td>
               {/* Render avg as filled/empty stars for instant readability */}
               <td>
@@ -128,7 +128,7 @@ export default function Evaluations() {
       {ratee && (
         <div className="modal" onClick={() => setRatee(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>{t('evaluations.rateTitle', { name: ratee.name })}</h3>
+            <h3>{t('evaluations.rateTitle', { name: tc(ratee.name) })}</h3>
             <div className="stars">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button

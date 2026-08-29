@@ -18,11 +18,11 @@ import type { PublicUser, TaskReport as Report } from '../types';
 
 /** Small identity card; renders a neutral placeholder when unknown. */
 function Person({ label, person }: { label: string; person: PublicUser | null }) {
-  const { t } = useI18n();
+  const { t, tc } = useI18n();
   return (
     <div className="person">
       <span className="muted">{label}</span>
-      <b><bdi>{person ? person.name : t('common.none')}</bdi></b>
+      <b><bdi>{person ? tc(person.name) : t('common.none')}</bdi></b>
       {person && (
         <span className="role-tag">
           {t(`role.${person.role}` as MessageKey)}
@@ -37,7 +37,7 @@ const LIFECYCLE = ['assigned', 'in_progress', 'submitted', 'approved'] as const;
 
 export default function TaskReport() {
   const { id = '' } = useParams();
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState('');
@@ -62,14 +62,14 @@ export default function TaskReport() {
         {farm && (
           <>
             {' · '}
-            <Link to={`/farms/${farm.id}`}><bdi>{farm.name}</bdi></Link>
+            <Link to={`/farms/${farm.id}`}><bdi>{tc(farm.name)}</bdi></Link>
           </>
         )}
       </p>
 
       <div className="pagehead">
         <p className="eyebrow">{t('report.eyebrow')}</p>
-        <h1><bdi>{task.title}</bdi></h1>
+        <h1><bdi>{tc(task.title)}</bdi></h1>
         <p>{t('report.subtitle')}</p>
       </div>
       <p>
@@ -78,13 +78,13 @@ export default function TaskReport() {
         </span>{' '}
         <span className="muted">
           {t('report.location', {
-            farm: farm ? farm.name : t('report.unknownFarm'),
+            farm: farm ? tc(farm.name) : t('report.unknownFarm'),
             lat: fmt.number(Number(task.lat.toFixed(4))),
             lng: fmt.number(Number(task.lng.toFixed(4))),
           })}
         </span>
       </p>
-      <p className="desc"><bdi>{task.description}</bdi></p>
+      <p className="desc"><bdi>{tc(task.description)}</bdi></p>
 
       <section className="panel">
         <h2>{t('report.lifecycle')}</h2>
@@ -126,8 +126,8 @@ export default function TaskReport() {
                     to English prose, so a server addition is visibly
                     untranslated instead of silently mixing languages. */}
                 <b>{t(`report.milestone.${m.key}` as MessageKey)}</b>
-                <small>{t('report.responsible', { who: m.by })}</small>
-                {m.note && <span className="desc"><bdi>{m.note}</bdi></span>}
+                <small>{t('report.responsible', { who: tc(m.by) })}</small>
+                {m.note && <span className="desc"><bdi>{tc(m.note)}</bdi></span>}
               </span>
             </li>
           ))}
@@ -141,15 +141,15 @@ export default function TaskReport() {
         <section className="panel">
           <h2>{t('report.issue')}</h2>
           <p>
-            <b><bdi>{issue.title}</bdi></b>{' '}
+            <b><bdi>{tc(issue.title)}</bdi></b>{' '}
             <span className="badge">
               {t(`stage.${issue.stage}` as MessageKey)}
             </span>{' '}
             <span className="muted">
               {t('report.issueMeta', {
-                kind: issue.kind,
-                severity: issue.severity,
-                source: issue.source,
+                kind: tc(issue.kind),
+                severity: tc(issue.severity),
+                source: tc(issue.source),
               })}
             </span>
           </p>
@@ -169,7 +169,7 @@ export default function TaskReport() {
                       who: t(`role.${e.actorRole}` as MessageKey),
                     })}
                   </small>
-                  {e.note && <span className="desc"><bdi>{e.note}</bdi></span>}
+                  {e.note && <span className="desc"><bdi>{tc(e.note)}</bdi></span>}
                 </span>
               </li>
             ))}
@@ -188,7 +188,7 @@ export default function TaskReport() {
       {task.reviewNote && (
         <section className="panel">
           <h2>{t('report.verdict')}</h2>
-          <p className="desc"><bdi>{task.reviewNote}</bdi></p>
+          <p className="desc"><bdi>{tc(task.reviewNote)}</bdi></p>
         </section>
       )}
 
@@ -204,7 +204,7 @@ export default function TaskReport() {
                 <b>{fmt.currency(c.amount, c.currency)}</b>
                 <small>
                   {t(`report.costCategory.${c.category}` as MessageKey)}
-                  {c.note ? ` · ${c.note}` : ''}
+                  {c.note ? ` · ${tc(c.note)}` : ''}
                 </small>
               </span>
             </li>
@@ -251,13 +251,13 @@ export default function TaskReport() {
           {comments.map((c) => (
             <li key={c.id}>
               <b>
-                <bdi>{c.authorName}</bdi>{' '}
+                <bdi>{tc(c.authorName)}</bdi>{' '}
                 <span className="role-tag">
                   {t(`role.${c.authorRole}` as MessageKey)}
                 </span>
               </b>{' '}
               <span className="muted">{fmt.dateTime(c.createdAt)}</span>
-              {c.text && <div className="desc"><bdi>{c.text}</bdi></div>}
+              {c.text && <div className="desc"><bdi>{tc(c.text)}</bdi></div>}
               {c.audioUrl && <audio controls src={c.audioUrl} />}
             </li>
           ))}

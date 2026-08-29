@@ -16,7 +16,7 @@ import type { MessageKey } from '../i18n';
 import type { Task, User } from '../types';
 
 export default function Dashboard() {
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [people, setPeople] = useState<(User & { avgStars?: number })[]>([]);
@@ -79,7 +79,7 @@ export default function Dashboard() {
                 <span className={`badge b-${t2.status}`}>
                   {t(`status.${t2.status}` as MessageKey)}
                 </span>{' '}
-                <bdi>{t2.title}</bdi>
+                <bdi>{tc(t2.title)}</bdi>
               </Link>
             </li>
           ))}
@@ -95,7 +95,7 @@ export default function Dashboard() {
             .filter((p) => p.role !== 'owner')
             .map((p) => (
               <li key={p.id}>
-                <bdi>{p.name}</bdi>{' '}
+                <bdi>{tc(p.name)}</bdi>{' '}
                 <span className="role-tag">
                   {t(`role.${p.role}` as MessageKey)}
                 </span>{' '}

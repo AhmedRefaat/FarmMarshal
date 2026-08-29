@@ -40,7 +40,7 @@ import ExpertNetwork from './pages/ExpertNetwork';
 /** Wraps protected pages with the sidebar; redirects logged-out users. */
 function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  const { t } = useI18n();
+  const { t, tc } = useI18n();
   if (!user) return <Navigate to="/login" replace />;
 
   const isOwner = user.role === 'owner';
@@ -62,7 +62,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <span className="pill amber">{t('app.demoData')}</span>
           <LocaleSwitch />
           <button className="logout" onClick={logout}>
-            {t('nav.logout', { name: user.name })}
+            {t('nav.logout', { name: tc(user.name) })}
           </button>
         </div>
       </header>

@@ -26,6 +26,7 @@ import React, {
 } from 'react';
 import { en } from './en';
 import { ar } from './ar';
+import { AR_CONTENT } from './content';
 
 export type Locale = 'ar' | 'en';
 
@@ -123,6 +124,8 @@ export interface I18n {
   dir: 'rtl' | 'ltr';
   setLocale(next: Locale): void;
   t(key: MessageKey, vars?: Vars): string;
+  /** Translates DATA (names, titles, notes); unknown text passes through. */
+  tc<T extends string | null | undefined>(text: T): T;
   fmt: Formatters;
 }
 
@@ -160,6 +163,14 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       return interpolate(template, vars, dir === 'rtl');
     },
     [locale, dir]
+  );
+
+  const tc = useCallback(
+    (<T extends string | null | undefined>(text: T): T => {
+      if (locale !== 'ar' || !text) return text;
+      return (AR_CONTENT[text] ?? text) as T;
+    }) as I18n['tc'],
+    [locale]
   );
 
   const fmt = useMemo<Formatters>(() => {
@@ -211,8 +222,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, [locale, dir, t]);
 
   const value = useMemo<I18n>(
-    () => ({ locale, dir, setLocale, t, fmt }),
-    [locale, dir, setLocale, t, fmt]
+    () => ({ locale, dir, setLocale, t, tc, fmt }),
+    [locale, dir, setLocale, t, tc, fmt]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

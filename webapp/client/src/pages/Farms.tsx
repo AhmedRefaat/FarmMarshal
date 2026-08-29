@@ -65,7 +65,7 @@ function coverFor(id: string): string {
 }
 
 export default function Farms() {
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [rows, setRows] = useState<FarmRow[]>([]);
   const [error, setError] = useState('');
@@ -130,10 +130,10 @@ export default function Farms() {
           return (
             <Link key={farm.id} to={`/farms/${farm.id}`} className="farm-card">
               <figure className="photo">
-                <img src={coverFor(farm.id)} alt={t('farms.photoAlt', { name: farm.name })} />
+                <img src={coverFor(farm.id)} alt={t('farms.photoAlt', { name: tc(farm.name) })} />
               </figure>
               <div className="farm-card-body">
-                <h3><bdi>{farm.name}</bdi></h3>
+                <h3><bdi>{tc(farm.name)}</bdi></h3>
                 <p className="muted">
                   {t('farms.cardCounts', {
                     tasks: fmt.number(tasks.length),

@@ -15,7 +15,7 @@ const STATUSES: (TaskStatus | 'all')[] = [
 ];
 
 export default function TaskList() {
-  const { t, fmt } = useI18n();
+  const { t, tc, fmt } = useI18n();
   const describeError = useErrorMessage();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
@@ -67,7 +67,7 @@ export default function TaskList() {
               <td>
                 {/* <bdi> keeps a Latin task title from reordering the RTL row */}
                 <Link to={`/tasks/${row.id}`}>
-                  <bdi>{row.title}</bdi>
+                  <bdi>{tc(row.title)}</bdi>
                 </Link>
               </td>
               <td>
