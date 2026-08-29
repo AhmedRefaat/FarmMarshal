@@ -41,8 +41,13 @@ import type {
   User,
 } from '../types';
 
-/** Set at build time by the Pages workflow; false for every normal build. */
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === '1';
+/**
+ * On by default for production builds: there is no API to talk to on a static
+ * host. Set VITE_DEMO_MODE=0 when building against a real deployed backend.
+ */
+export const DEMO_MODE =
+  import.meta.env.VITE_DEMO_MODE === '1' ||
+  (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE !== '0');
 
 /** A captured HTTP response: the status matters as much as the body. */
 export interface DemoResponse {

@@ -2,6 +2,8 @@
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { copyFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 /**
  * Vite configuration for the FarmMarshal web client.
@@ -37,7 +39,18 @@ function resolveBasePath(): string {
 }
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      // GitHub Pages has no SPA rewrite: deep links are served 404.html.
+      name: 'spa-fallback-404',
+      apply: 'build',
+      closeBundle() {
+        const dist = resolve(__dirname, 'dist');
+        copyFileSync(resolve(dist, 'index.html'), resolve(dist, '404.html'));
+      },
+    },
+  ],
 
   base: resolveBasePath(),
 
